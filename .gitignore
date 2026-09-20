@@ -12,3 +12,6 @@ benchmark/output/
 node_modules/
 .DS_Store
 *.log
+
+# Khung hình lấy từ phim thật để đo OCR — chỉ giữ cục bộ, không commit
+benchmark/fixtures/

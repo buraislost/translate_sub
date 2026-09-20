@@ -64,13 +64,22 @@ export class TesseractEngine {
       // Mọi đường dẫn phải trỏ vào extension: CSP của MV3 chặn tải script
       // và WASM từ CDN, nên không có cách nào dùng bản online.
       workerPath: chrome.runtime.getURL(`${VENDOR}worker.min.js`),
+      // BẮT BUỘC false. Mặc định tesseract.js tạo worker qua blob URL bọc
+      // importScripts(...), và CSP của MV3 chặn kiểu đó — lỗi thật đã gặp:
+      //   "Failed to execute importScripts on WorkerGlobalScope: The script
+      //    at chrome-extension://.../worker.min.js failed to load"
+      // Lỗi này bị ném dưới dạng chuỗi thuần (không phải Error), nên message
+      // trả về chỉ còn "undefined: undefined" — gần như không thể đoán ra.
+      workerBlobURL: false,
       // Trỏ vào THƯ MỤC (không phải file) để tesseract.js tự dò xem CPU có
       // relaxed SIMD hay chỉ SIMD thường — ta đóng gói sẵn cả hai biến thể.
       corePath: chrome.runtime.getURL(VENDOR),
       langPath: chrome.runtime.getURL(VENDOR),
       // Ta tải bản .traineddata chưa nén; mặc định thư viện tìm file .gz.
       gzip: false,
-      logger: onProgress ? (m) => onProgress(m) : undefined,
+      // Luôn truyền MỘT HÀM. Truyền `undefined` sẽ ghi đè hàm mặc định của thư
+      // viện và mỗi tin nhắn tiến độ đều ném "TypeError: m is not a function".
+      logger: onProgress ? (m) => onProgress(m) : () => {},
     });
 
     await this.worker.setParameters({
