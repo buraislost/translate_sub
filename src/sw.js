@@ -11,6 +11,11 @@
  * lần gọi sau sẽ tự khởi động lại và dựng lại offscreen nếu cần.
  */
 
+// Import TĨNH, không phải import() động: service worker của MV3 cấm dynamic
+// import theo đúng spec HTML ("import() is disallowed on ServiceWorkerGlobalScope").
+// Static import chạy được vì manifest khai báo "type": "module".
+import { probeTranslator } from './dev/probe.js';
+
 const OFFSCREEN_PATH = 'src/offscreen/offscreen.html';
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -102,8 +107,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   switch (msg.type) {
     // Phép thử Translator API — chạy ngay trong context service worker.
     case 'SF_PROBE_TRANSLATOR_SW':
-      import('./dev/probe.js')
-        .then((m) => m.probeTranslator(msg.langs))
+      probeTranslator(msg.langs)
         .then(sendResponse)
         .catch((err) => sendResponse({ context: 'service worker', error: String(err) }));
       return true;

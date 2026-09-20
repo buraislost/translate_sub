@@ -193,6 +193,87 @@ function translatorVerdict(res) {
   return `${map[res.availability] ?? esc(String(res.availability))} <span style="color:var(--muted)">(${esc(res.api ?? '—')})</span>`;
 }
 
+/* ------------------------------------------------------------------ */
+/* Tải model dịch                                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Câu thử — cố tình nhồi dấu chồng (ề, ể, ệ, ừ, ữ) và văn nói kiểu phụ đề.
+ * Vừa để xem chất lượng dịch, vừa làm mẫu đối chiếu khi OCR đọc sai dấu:
+ * nếu dịch ra tiếng Anh vô nghĩa thì gần như chắc chắn dấu đã sai từ khâu OCR.
+ */
+const SAMPLES = [
+  'Hôm nay trời đẹp quá!',
+  'Chiều nay trời đẹp, về nhà nghỉ một chút nhé.',
+  'Tôi đã nghĩ kỹ rồi, chuyện này không thể để lâu hơn nữa.',
+];
+
+/**
+ * Tải model dịch rồi dịch thử.
+ *
+ * Vì sao chạy trong popup chứ không phải offscreen: Chrome đòi user gesture
+ * để bắt đầu tải model AI on-device. Cú click ở đây là gesture hợp lệ, còn
+ * offscreen document thì không bao giờ có. Tải xong một lần là model dùng
+ * được ở MỌI context — kể cả offscreen, nơi pipeline thật sẽ gọi nó.
+ */
+async function runModel() {
+  const btn = $('modelRun');
+  const out = $('modelOut');
+  btn.disabled = true;
+
+  const show = (html) => {
+    out.innerHTML = `<dl>${html}</dl>`;
+  };
+
+  try {
+    if (typeof Translator?.availability !== 'function') {
+      show(row('Lỗi', '<span class="verdict bad">Không có Translator API</span> — cần Chrome 138+'));
+      return;
+    }
+
+    const state = await Translator.availability(LANGS);
+    if (state === 'unavailable') {
+      show(row('Lỗi', '<span class="verdict bad">Chrome không hỗ trợ cặp vi → en</span>'));
+      return;
+    }
+
+    btn.textContent = state === 'available' ? 'Đang dịch thử…' : 'Đang tải model…';
+
+    const translator = await Translator.create({
+      ...LANGS,
+      monitor(m) {
+        m.addEventListener('downloadprogress', (e) => {
+          // e.loaded là tỉ lệ 0–1, không phải số byte.
+          btn.textContent = `Đang tải model… ${Math.round(e.loaded * 100)}%`;
+        });
+      },
+    });
+
+    btn.textContent = 'Đang dịch thử…';
+
+    // Dịch tuần tự, KHÔNG Promise.all: Translator API xử lý từng cái một,
+    // gọi song song chỉ xếp hàng ngầm và khó đo thời gian thật.
+    const rows = [];
+    for (const vi of SAMPLES) {
+      const t0 = performance.now();
+      const en = await translator.translate(vi);
+      const ms = Math.round(performance.now() - t0);
+      rows.push(
+        row(`${ms} ms`, `<span style="color:var(--muted)">${esc(vi)}</span><br>→ ${esc(en)}`)
+      );
+    }
+    translator.destroy?.();
+
+    show(rows.join(''));
+    btn.textContent = 'Dịch thử lại';
+  } catch (err) {
+    show(row('Lỗi', `<span class="verdict bad">${esc(err.name)}</span> ${esc(err.message)}`));
+    btn.textContent = 'Thử lại';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 const row = (label, value) => `<div class="item"><dt>${label}</dt><dd>${value}</dd></div>`;
 
 /** Chặn HTML injection — kết quả probe có chứa URL và message lỗi từ trang web. */
@@ -240,6 +321,7 @@ async function init() {
   }
 
   $('probeRun').addEventListener('click', runProbe);
+  $('modelRun').addEventListener('click', runModel);
 }
 
 init();

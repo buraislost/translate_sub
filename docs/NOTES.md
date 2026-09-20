@@ -75,15 +75,33 @@ vendor/               thư viện tải sẵn (chưa có)
 
 ## Trạng thái
 
-| Sprint | Nội dung | Trạng thái |
-|---|---|---|
-| 1 | Xương sống + `SrtFileSource` + overlay + offset | ✅ xong |
-| 2 | ASR — offscreen, AudioWorklet, Whisper, VAD | ⬜ kế hoạch: `docs/sprint-2-asr.md` |
-| 3 | OCR — canvas, Otsu, dHash, Tesseract | ⬜ kế hoạch: `docs/sprint-3-ocr.md` |
-| 4 | Dịch máy + cache IndexedDB | ⬜ |
-| 5 | Đo CER/WER, ablation study | ⬜ kế hoạch: `docs/sprint-5-benchmark.md` |
+**Thứ tự đã đảo so với kế hoạch gốc.** Mục tiêu thật: đọc hardsub **tiếng Việt** trên web phim rồi hiện dòng **tiếng Anh** dịch máy. ASR không đọc được bản dịch đã cháy sẵn trong clip nên bị đẩy xuống sau.
 
-Khi bắt đầu một sprint, **đọc file kế hoạch tương ứng trong `docs/` trước khi viết code.**
+| Phase | Nội dung | Trạng thái |
+|---|---|---|
+| — | Xương sống + `SrtFileSource` + overlay + offset | ✅ xong |
+| 0 | Thăm dò: canvas tainted + Translator API | ✅ xong — `docs/probe-report.md` |
+| 1 | Offscreen + đóng gói Tesseract.js | 🔄 đang làm |
+| 2 | Bắt frame, dHash, lọc frame trùng | ⬜ |
+| 3 | Tiền xử lý (white-mask/Otsu) + lắp cue + sửa dấu theo âm tiết | ⬜ |
+| 4 | `TranslatedSource` + giao diện | ⬜ |
+| 5 | Đo CER/WER, ablation study | ⬜ `docs/sprint-5-benchmark.md` |
+| sau | ASR — offscreen, AudioWorklet, Whisper, VAD | ⬜ `docs/sprint-2-asr.md` |
+
+`docs/sprint-3-ocr.md` vẫn là tài liệu tham chiếu cho Phase 1–3, nhưng **thứ tự nhiệm vụ trong đó đã lỗi thời** — bám theo bảng trên.
+
+## Quyết định đã chốt (đừng mở lại nếu không có số liệu mới)
+
+| Quyết định | Lý do |
+|---|---|
+| OCR trước, ASR sau | Sub đã cháy sẵn trong clip là **bản dịch người làm** — ASR không đọc được nó |
+| Tesseract.js, không phải PaddleOCR | Hardsub dùng font họ Arial, đúng nhóm Tesseract mạnh (>97%). Giữ engine thay được để Phase 5 so sánh |
+| Chrome Translator API, không phải transformers.js | Đã đo: dùng được ở offscreen → **0 byte** vendor thay vì ~75MB |
+| Phần dịch đặt ở **offscreen document** | Translator API không chạy trong Web Worker; offscreen đã đo là chạy được |
+| Overlay **chỉ hiện dòng tiếng Anh** | Tiếng Việt đã cháy sẵn trên hình, vẽ đè lên sẽ chồng chữ. Dữ liệu vẫn giữ cả hai để xuất `.srt` |
+| Ngôn ngữ nguồn là **tham số**, mặc định `vi` | Để sau này gặp hardsub Trung/Hàn không phải sửa lõi |
+
+Khi bắt đầu một phase, **đọc `docs/probe-report.md` và bảng cạm bẫy bên dưới trước khi viết code.**
 
 ## Những cạm bẫy đã biết — đừng lặp lại
 
@@ -96,3 +114,7 @@ Khi bắt đầu một sprint, **đọc file kế hoạch tương ứng trong `d
 | Chạy WASM ở main thread | Video giật | Mọi inference phải trong Web Worker |
 | OCR mỗi frame | Treo máy, đọc lại cùng câu chục lần | dHash/SSIM lọc frame trùng trước khi gọi OCR |
 | Dịch từng dòng sub một | Mất ngữ cảnh, dính rate limit | Gom batch 20–30 câu |
+| `import()` **động** trong `sw.js` | `TypeError: import() is disallowed on ServiceWorkerGlobalScope` | Dùng static import — chạy được vì manifest có `"type": "module"` |
+| Giả định video là 16:9 | Vùng crop lệch khỏi dải phụ đề | Tính từ `videoWidth`/`videoHeight` thật. Đã gặp phim **1924×1040** (~1,85:1) |
+| Gọi `Translator.create()` từ offscreen khi model chưa tải | Treo hoặc ném lỗi — Chrome đòi user gesture | Tải lần đầu từ **popup** (cú click là gesture). Xong rồi mọi context đều dùng được |
+| `Translator` xử lý tuần tự | Gọi song song chỉ xếp hàng ngầm | Một hàng đợi, và **không bao giờ để dòng gốc chờ bản dịch** |
