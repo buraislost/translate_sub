@@ -179,8 +179,19 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     case 'SF_PROBE':
       runProbe(msg.langs).then(sendResponse);
       return true;
+
+    // Tách riêng khỏi SF_PROBE vì phép thử này TUA video để lấy mẫu rải đều —
+    // thao tác gây khó chịu, chỉ chạy khi người dùng chủ động yêu cầu.
+    case 'SF_PROBE_HARDSUB':
+      runHardsubProbe(msg.samples).then(sendResponse);
+      return true;
   }
 });
+
+async function runHardsubProbe(samples) {
+  const { probeHardsub } = await import(chrome.runtime.getURL('src/dev/probe.js'));
+  return probeHardsub(state.video, samples ? { samples } : undefined);
+}
 
 async function runProbe(langs) {
   const { probeTaint, probeTranslator } = await import(

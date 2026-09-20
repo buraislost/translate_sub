@@ -59,11 +59,21 @@ export class UniversalAdapter extends BaseAdapter {
     let el = v.parentElement;
     let depth = 0;
 
+    // Sai số tính THEO TỈ LỆ kích thước video, không phải số pixel cố định.
+    // Đo thật trên một web phim: video 531x299, ancestor kế tiếp cao 404 —
+    // chênh 105px, chỉ vừa đúng thoát ngưỡng cứng 100px cũ. Sát ranh giới
+    // như vậy nghĩa là chỉ cần trang đổi padding vài pixel là overlay bị gắn
+    // nhầm vào khối chứa cả phần dưới video, và phụ đề sẽ lệch hẳn ra ngoài.
+    // Ngưỡng cố định còn hỏng theo chiều ngược lại: với video 480x270 thì
+    // 100px là 37% chiều cao — lỏng tới mức vơ luôn cả container sai.
+    const tolW = Math.max(24, vr.width * 0.08);
+    const tolH = Math.max(24, vr.height * 0.08);
+
     while (el && depth < 5) {
       const r = el.getBoundingClientRect();
-      const sameWidth = Math.abs(r.width - vr.width) < 60;
-      const sameHeight = Math.abs(r.height - vr.height) < 100;
-      if (sameWidth && sameHeight) best = el;
+      if (Math.abs(r.width - vr.width) < tolW && Math.abs(r.height - vr.height) < tolH) {
+        best = el;
+      }
       el = el.parentElement;
       depth++;
     }

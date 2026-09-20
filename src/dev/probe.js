@@ -184,3 +184,99 @@ function detectContext() {
   }
   return 'content script';
 }
+
+/* ------------------------------------------------------------------ */
+/* Phép thử 3 — video này có hardsub không                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Quét rải khắp phim để trả lời: có phụ đề cháy trên hình không?
+ *
+ * Vì sao cần: đo thật trên một web phim Việt cho thấy có phim KHÔNG hề có
+ * hardsub (server ghi "Song Ngữ" hoá ra là chọn tiếng lồng). Khi đó Tesseract
+ * vẫn chạy và vẫn trả chuỗi — nhưng là rác đọc từ nhiễu ảnh, confidence ~44%.
+ * Không kiểm tra trước thì extension ngốn CPU hàng giờ để sinh phụ đề vô nghĩa.
+ *
+ * Có TUA video để lấy mẫu rải đều, nên bắt buộc phải khôi phục lại đúng vị trí
+ * và trạng thái phát ban đầu — người dùng đang xem dở, không được cướp chỗ họ.
+ */
+export async function probeHardsub(video, { samples = 12, bandTop = 0.70 } = {}) {
+  if (!video) return { error: 'Không có video' };
+  if (!video.videoWidth) return { error: 'Video chưa có kích thước — bấm play rồi thử lại' };
+
+  const { detectSubtitleBand, summarizeScan } = await import(
+    chrome.runtime.getURL('src/core/hardsub-detect.js')
+  );
+
+  const restoreTime = video.currentTime;
+  const wasPaused = video.paused;
+  const duration = video.duration || 0;
+
+  const W = video.videoWidth;
+  const H = video.videoHeight;
+  const y0 = Math.round(H * bandTop);
+  const bandH = H - y0;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = bandH;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  const seek = (t) =>
+    new Promise((resolve) => {
+      const done = () => {
+        video.removeEventListener('seeked', done);
+        // Chờ thêm một nhịp: sự kiện 'seeked' bắn trước khi khung hình mới
+        // thực sự được vẽ xong, vẽ ngay sẽ dính khung cũ.
+        setTimeout(resolve, 260);
+      };
+      video.addEventListener('seeked', done);
+      video.currentTime = t;
+    });
+
+  const ratios = [];
+  const bands = [];
+
+  try {
+    video.pause(); // tua trong lúc đang phát cho ra khung hình nhoè
+
+    for (let i = 0; i < samples; i++) {
+      // Bỏ 5% đầu và 5% cuối: intro và credit thường không có thoại.
+      const t = duration * (0.05 + (0.9 * i) / Math.max(1, samples - 1));
+      await seek(t);
+
+      ctx.drawImage(video, 0, y0, W, bandH, 0, 0, W, bandH);
+      const band = detectSubtitleBand(ctx.getImageData(0, 0, W, bandH));
+
+      ratios.push(band?.ratio ?? 0);
+      if (band) bands.push(band);
+    }
+  } catch (err) {
+    return { error: `${err.name}: ${err.message}` };
+  } finally {
+    video.currentTime = restoreTime;
+    if (!wasPaused) video.play().catch(() => {});
+  }
+
+  const verdict = summarizeScan(ratios);
+
+  // Gộp vị trí dải chữ từ các frame CÓ chữ, quy về tỉ lệ của cả khung hình.
+  // Đây chính là vùng crop mà pipeline OCR nên dùng — đo được thì đừng đoán.
+  let cropHint = null;
+  if (bands.length) {
+    const top = Math.min(...bands.map((b) => b.top));
+    const bottom = Math.max(...bands.map((b) => b.bottom));
+    cropHint = {
+      topPct: +((bandTop + top * (1 - bandTop)) * 100).toFixed(1),
+      bottomPct: +((bandTop + bottom * (1 - bandTop)) * 100).toFixed(1),
+    };
+  }
+
+  return {
+    ...verdict,
+    samples: ratios.length,
+    maxRatio: +verdict.maxRatio.toFixed(5),
+    cropHint,
+    frame: `${W}x${H}`,
+  };
+}

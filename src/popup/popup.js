@@ -337,6 +337,61 @@ async function runOcr() {
   btn.textContent = 'Thử OCR lại';
 }
 
+/* ------------------------------------------------------------------ */
+/* Phim này có sub cháy không                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Quét rải khắp phim xem có phụ đề cháy trên hình không.
+ *
+ * Vì sao đáng có nút riêng: đo thật trên một web phim Việt cho thấy có phim
+ * KHÔNG có hardsub (server ghi "Song Ngữ" hoá ra là chọn tiếng lồng). Chạy OCR
+ * trên phim như vậy chỉ cho ra chuỗi rác đọc từ nhiễu ảnh — tốn CPU hàng giờ
+ * mà người dùng không hiểu vì sao. Hỏi trước một câu rẻ hơn nhiều.
+ */
+async function runHardsub() {
+  const btn = $('hardsubRun');
+  const out = $('hardsubOut');
+  btn.disabled = true;
+  btn.textContent = 'Đang tua và quét 12 khung hình…';
+  out.innerHTML = '';
+
+  const r = await send({ type: 'SF_PROBE_HARDSUB', samples: 12 });
+
+  if (!r || r.error) {
+    const msg = esc(r?.error ?? 'không tìm thấy video trên trang này');
+    out.innerHTML = '<dl>' + row('Lỗi', '<span class="verdict bad">' + msg + '</span>') + '</dl>';
+    btn.disabled = false;
+    btn.textContent = 'Thử lại';
+    return;
+  }
+
+  const verdict =
+    r.hasHardsub === true
+      ? '<span class="verdict ok">CÓ SUB CHÁY</span> — OCR dùng được'
+      : r.hasHardsub === false
+        ? '<span class="verdict bad">KHÔNG CÓ SUB CHÁY</span> — OCR sẽ chỉ đọc ra chuỗi rác'
+        : '<span class="verdict warn">CHƯA CHẮC</span>';
+
+  const rows = [
+    row('Kết luận', verdict),
+    row('Căn cứ', esc(r.reason)),
+    row('Khung hình', esc(r.frame)),
+  ];
+
+  // Vùng crop ĐO ĐƯỢC tốt hơn hẳn con số mặc định đoán mò: đã gặp phim
+  // 1924x1040 (~1,85:1), giả định 16:9 sẽ cắt lệch khỏi dải chữ.
+  if (r.cropHint) {
+    rows.push(
+      row('Dải chữ', r.cropHint.topPct + '% – ' + r.cropHint.bottomPct + '% chiều cao khung')
+    );
+  }
+
+  out.innerHTML = '<dl>' + rows.join('') + '</dl>';
+  btn.disabled = false;
+  btn.textContent = 'Quét lại';
+}
+
 const row = (label, value) => `<div class="item"><dt>${label}</dt><dd>${value}</dd></div>`;
 
 /** Chặn HTML injection — kết quả probe có chứa URL và message lỗi từ trang web. */
@@ -386,6 +441,7 @@ async function init() {
   $('probeRun').addEventListener('click', runProbe);
   $('modelRun').addEventListener('click', runModel);
   $('ocrRun').addEventListener('click', runOcr);
+  $('hardsubRun').addEventListener('click', runHardsub);
 }
 
 init();
