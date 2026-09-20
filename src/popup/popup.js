@@ -274,6 +274,69 @@ async function runModel() {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Self-test OCR                                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Nạp Tesseract rồi cho nó đọc mấy ảnh tự vẽ có đáp án biết trước.
+ *
+ * Đây là câu trả lời cho câu hỏi lớn nhất của Phase 1: Tesseract có đọc nổi
+ * dấu tiếng Việt không. Nếu CER ở điều kiện lý tưởng đã tệ thì trên phim thật
+ * còn tệ hơn nhiều — và phải đổi engine TRƯỚC khi viết pipeline quanh nó.
+ */
+async function runOcr() {
+  const btn = $('ocrRun');
+  const out = $('ocrOut');
+  btn.disabled = true;
+  btn.textContent = 'Đang nạp Tesseract (~3,9MB)…';
+  out.innerHTML = '';
+
+  const res = await sendToSw({ type: 'SF_OCR_SELFTEST', target: 'sw', lang: 'vie' });
+
+  if (!res?.ok) {
+    out.innerHTML = `<dl>${row('Lỗi', `<span class="verdict bad">${esc(res?.error ?? 'không phản hồi')}</span>`)}</dl>`;
+    btn.disabled = false;
+    btn.textContent = 'Thử lại';
+    return;
+  }
+
+  // CER dưới 0,10 ở điều kiện lý tưởng là đạt; trên 0,30 là phải đổi engine.
+  const verdict =
+    res.meanCer <= 0.1
+      ? '<span class="verdict ok">ĐẠT</span>'
+      : res.meanCer <= 0.3
+        ? '<span class="verdict warn">TẠM ĐƯỢC</span>'
+        : '<span class="verdict bad">KÉM</span>';
+
+  const rows = [
+    row('Nạp engine', `${res.initMs} ms`),
+    row('CER trung bình', `<strong>${res.meanCer}</strong> ${verdict}`),
+  ];
+
+  for (const r of res.results) {
+    if (r.error) {
+      rows.push(row(esc(r.label), `<span class="bad">${esc(r.error)}</span>`));
+      continue;
+    }
+    // Hiện cả câu đúng lẫn câu đọc được: con số CER cho biết tệ đến đâu,
+    // nhưng nhìn chữ mới biết SAI Ở ĐÂU — thường là dấu thanh.
+    const tone = r.cer <= 0.05 ? 'ok' : r.cer <= 0.2 ? 'warn' : 'bad';
+    rows.push(
+      row(
+        esc(r.label),
+        `<span class="${tone}">CER ${r.cer}</span> · ${r.confidence}% · ${r.ms} ms` +
+          `<br><span style="color:var(--muted)">${esc(r.expected)}</span>` +
+          `<br>→ ${esc(r.got)}`
+      )
+    );
+  }
+
+  out.innerHTML = `<dl>${rows.join('')}</dl>`;
+  btn.disabled = false;
+  btn.textContent = 'Thử OCR lại';
+}
+
 const row = (label, value) => `<div class="item"><dt>${label}</dt><dd>${value}</dd></div>`;
 
 /** Chặn HTML injection — kết quả probe có chứa URL và message lỗi từ trang web. */
@@ -322,6 +385,7 @@ async function init() {
 
   $('probeRun').addEventListener('click', runProbe);
   $('modelRun').addEventListener('click', runModel);
+  $('ocrRun').addEventListener('click', runOcr);
 }
 
 init();

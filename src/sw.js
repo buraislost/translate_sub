@@ -119,6 +119,17 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         .catch((err) => sendResponse({ context: 'offscreen document', error: String(err) }));
       return true;
 
+    // Self-test OCR: nạp Tesseract rồi đọc mấy ảnh tự vẽ. Chạy lâu (lần đầu
+    // phải giải nén ~3,9MB WASM) nên bật heartbeat trong lúc chờ, không thì
+    // service worker bị kill giữa chừng và message trả về rơi mất.
+    case 'SF_OCR_SELFTEST':
+      startHeartbeat();
+      sendToOffscreen({ type: 'SF_OCR_SELFTEST', lang: msg.lang })
+        .then(sendResponse)
+        .catch((err) => sendResponse({ ok: false, error: String(err) }))
+        .finally(stopHeartbeat);
+      return true;
+
     case 'SF_START_HEARTBEAT':
       startHeartbeat();
       sendResponse({ ok: true });

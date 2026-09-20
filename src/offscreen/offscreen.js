@@ -11,8 +11,12 @@
  */
 
 import { probeTranslator } from '../dev/probe.js';
+import { TesseractEngine } from './ocr-engine.js';
 
 console.log('[SubForge][offscreen] đã khởi động');
+
+/** Một engine dùng chung cho cả phiên — mỗi bản là ~3,9MB WASM trong RAM. */
+const engine = new TesseractEngine();
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   // Chỉ nhận message có đích danh là offscreen — service worker và content
@@ -24,9 +28,43 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       probeTranslator(msg.langs).then(sendResponse);
       return true; // giữ kênh mở cho lời gọi bất đồng bộ
 
+    case 'SF_OCR_SELFTEST':
+      runSelfTest(msg.lang).then(sendResponse);
+      return true;
+
     case 'SF_PING':
       // Heartbeat: service worker gọi định kỳ để tự giữ mình không bị kill.
       sendResponse({ alive: true });
       return true;
   }
 });
+
+/**
+ * Nạp engine rồi chạy bộ ca thử tự vẽ.
+ *
+ * Nuốt lỗi thành object thay vì để Promise reject: message trả về từ offscreen
+ * bị serialize qua JSON nên Error chỉ còn lại `{}` ở đầu bên kia — không đọc
+ * được gì, rất khó debug.
+ */
+async function runSelfTest(lang = 'vie') {
+  const t0 = performance.now();
+  try {
+    let lastStatus = '';
+    await engine.init({
+      lang,
+      onProgress: (m) => {
+        if (m.status !== lastStatus) {
+          lastStatus = m.status;
+          console.log('[SubForge][ocr]', m.status);
+        }
+      },
+    });
+    const initMs = Math.round(performance.now() - t0);
+
+    const { runOcrSelfTest } = await import('../dev/ocr-selftest.js');
+    const report = await runOcrSelfTest(engine);
+    return { ok: true, initMs, ...report };
+  } catch (err) {
+    return { ok: false, error: `${err.name}: ${err.message}` };
+  }
+}
