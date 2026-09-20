@@ -1,0 +1,14 @@
+# Thư viện tải về — dung lượng lớn, không commit
+vendor/
+
+# Model đã tải
+*.traineddata
+*.onnx
+*.wasm
+
+# Output benchmark (giữ lại ground-truth)
+benchmark/output/
+
+node_modules/
+.DS_Store
+*.log

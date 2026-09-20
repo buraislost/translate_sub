@@ -1,0 +1,12 @@
+{
+  "name": "subforge",
+  "version": "0.1.0",
+  "description": "Chrome extension: tạo và hiển thị phụ đề song ngữ trên mọi website có video.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "check": "node --test \"tests/**/*.test.mjs\""
+  },
+  "license": "MIT"
+}

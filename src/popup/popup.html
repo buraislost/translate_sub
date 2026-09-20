@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<title>SubForge</title>
+<style>
+  :root {
+    --ink: #17120d;
+    --panel: #221a13;
+    --edge: #3a2d22;
+    --text: #f0e5d6;
+    --muted: #9c8b78;
+    --accent: #d8a13f;
+    --accent-soft: rgba(216, 161, 63, 0.14);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    width: 336px;
+    margin: 0;
+    background: var(--ink);
+    color: var(--text);
+    font: 400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* ---- Khung xem thử: chính là sản phẩm thu nhỏ ---- */
+  .stage {
+    position: relative;
+    height: 126px;
+    background:
+      radial-gradient(120% 90% at 50% 0%, #2c2118 0%, #120e0a 70%);
+    border-bottom: 1px solid var(--edge);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .stage-head {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .brand {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: var(--muted);
+  }
+
+  .switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .switch input { position: absolute; opacity: 0; }
+  .track {
+    width: 32px; height: 18px;
+    border-radius: 9px;
+    background: #3d2f23;
+    position: relative;
+    transition: background 140ms ease;
+  }
+  .track::after {
+    content: "";
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #8b7a68;
+    transition: transform 140ms ease, background 140ms ease;
+  }
+  .switch input:checked + .track { background: var(--accent-soft); }
+  .switch input:checked + .track::after {
+    transform: translateX(14px);
+    background: var(--accent);
+  }
+  .switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .cue {
+    max-width: 88%;
+    padding: 1px 8px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.55);
+    text-align: center;
+    text-shadow: 0 1px 3px rgba(0,0,0,.9);
+    line-height: 1.3;
+  }
+  .cue-a { font-size: 15px; font-weight: 500; }
+  .cue-b { font-size: 12.5px; opacity: .9; margin-top: 3px; }
+
+  /* ---- Các nhóm điều khiển ---- */
+  section { padding: 13px 14px; border-bottom: 1px solid var(--edge); }
+  section:last-of-type { border-bottom: 0; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .row + .row { margin-top: 9px; }
+
+  .row-label {
+    width: 62px;
+    flex: none;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .file-btn {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--edge);
+    border-radius: 5px;
+    background: var(--panel);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 120ms ease;
+  }
+  .file-btn:hover { border-color: #55432f; }
+  .file-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .file-btn.loaded { border-color: rgba(216,161,63,.45); }
+
+  .file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-count { flex: none; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .nudge {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+  }
+  .nudge button {
+    width: 24px; height: 26px;
+    border: 1px solid var(--edge);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .nudge button:hover { border-color: #55432f; }
+  .nudge button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .nudge output {
+    width: 46px;
+    text-align: center;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 18px;
+  }
+  .value { width: 34px; text-align: right; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .status {
+    padding: 10px 14px 13px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .status strong { color: var(--text); font-weight: 500; }
+  .hint { margin-top: 5px; }
+  kbd {
+    padding: 1px 5px;
+    border: 1px solid var(--edge);
+    border-radius: 3px;
+    background: var(--panel);
+    font: inherit;
+    font-size: 11px;
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+  <div class="stage">
+    <div class="stage-head">
+      <span class="brand">SubForge</span>
+      <label class="switch">
+        <input type="checkbox" id="enabled" checked />
+        <span class="track"></span>
+        <span>Hiện phụ đề</span>
+      </label>
+    </div>
+    <div class="cue cue-a" id="previewA">Hai dòng phụ đề chạy cùng lúc</div>
+    <div class="cue cue-b" id="previewB">Two subtitle lines at the same time</div>
+  </div>
+
+  <section>
+    <div class="row">
+      <span class="row-label">Dòng trên</span>
+      <button class="file-btn" id="pick1">
+        <span class="file-name" id="name1">Chọn file .srt</span>
+        <span class="file-count" id="count1"></span>
+      </button>
+    </div>
+    <div class="row">
+      <span class="row-label">Lệch</span>
+      <div class="nudge">
+        <button data-nudge="1" data-delta="-0.5">−</button>
+        <output id="off1">0.0s</output>
+        <button data-nudge="1" data-delta="0.5">+</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="row">
+      <span class="row-label">Dòng dưới</span>
+      <button class="file-btn" id="pick2">
+        <span class="file-name" id="name2">Chọn file .srt</span>
+        <span class="file-count" id="count2"></span>
+      </button>
+    </div>
+    <div class="row">
+      <span class="row-label">Lệch</span>
+      <div class="nudge">
+        <button data-nudge="2" data-delta="-0.5">−</button>
+        <output id="off2">0.0s</output>
+        <button data-nudge="2" data-delta="0.5">+</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="row">
+      <span class="row-label">Cỡ chữ</span>
+      <input type="range" id="fontSize" min="14" max="46" step="1" />
+      <span class="value" id="fontSizeVal"></span>
+    </div>
+    <div class="row">
+      <span class="row-label">Độ cao</span>
+      <input type="range" id="bottom" min="0" max="30" step="1" />
+      <span class="value" id="bottomVal"></span>
+    </div>
+  </section>
+
+  <p class="status" id="status">Đang kiểm tra trang…</p>
+
+  <input type="file" id="file1" accept=".srt,.vtt,.txt" hidden />
+  <input type="file" id="file2" accept=".srt,.vtt,.txt" hidden />
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
