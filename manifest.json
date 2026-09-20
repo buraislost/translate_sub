@@ -6,7 +6,8 @@
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "offscreen"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -37,7 +38,8 @@
         "src/main.js",
         "src/core/*.js",
         "src/sources/*.js",
-        "src/adapters/*.js"
+        "src/adapters/*.js",
+        "src/dev/*.js"
       ],
       "matches": [
         "<all_urls>"

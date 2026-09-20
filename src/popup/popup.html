@@ -197,6 +197,53 @@
   }
 
   [hidden] { display: none !important; }
+
+  /* ---- Khu thăm dò: chỉ dùng lúc phát triển ---- */
+  .probe { border-top: 1px solid var(--edge); }
+  .probe summary {
+    padding: 9px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .probe summary:hover { color: var(--text); }
+  .probe-body { padding: 0 14px 13px; }
+
+  .probe-run {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--edge);
+    border-radius: 5px;
+    background: var(--panel);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .probe-run:hover { border-color: #55432f; }
+  .probe-run:disabled { opacity: .55; cursor: default; }
+  .probe-run:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .probe-out {
+    margin: 10px 0 0;
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
+  .probe-out dl { margin: 0; }
+  .probe-out .item {
+    display: flex;
+    gap: 7px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(58, 45, 34, .55);
+  }
+  .probe-out .item:last-child { border-bottom: 0; }
+  .probe-out dt { flex: none; width: 92px; color: var(--muted); }
+  .probe-out dd { margin: 0; flex: 1; min-width: 0; word-break: break-word; }
+  .verdict { font-weight: 600; }
+  .ok   { color: #7fc08a; }
+  .bad  { color: #e08a7a; }
+  .warn { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -264,6 +311,14 @@
   </section>
 
   <p class="status" id="status">Đang kiểm tra trang…</p>
+
+  <details class="probe">
+    <summary>Thăm dò kỹ thuật</summary>
+    <div class="probe-body">
+      <button class="probe-run" id="probeRun">Chạy thử trên trang này</button>
+      <div class="probe-out" id="probeOut"></div>
+    </div>
+  </details>
 
   <input type="file" id="file1" accept=".srt,.vtt,.txt" hidden />
   <input type="file" id="file2" accept=".srt,.vtt,.txt" hidden />

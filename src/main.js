@@ -173,8 +173,27 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       if ('enabled' in msg.patch) state.renderer?.setVisible(msg.patch.enabled);
       sendResponse(buildStatus());
       return true;
+
+    // Phép thử chặn cửa — chỉ dùng lúc phát triển. Nạp động để code thăm dò
+    // không nằm trong đường chạy chính.
+    case 'SF_PROBE':
+      runProbe(msg.langs).then(sendResponse);
+      return true;
   }
 });
+
+async function runProbe(langs) {
+  const { probeTaint, probeTranslator } = await import(
+    chrome.runtime.getURL('src/dev/probe.js')
+  );
+  return {
+    url: location.href,
+    hostname: location.hostname,
+    adapter: state.adapter.constructor.id,
+    taint: probeTaint(state.video),
+    translator: await probeTranslator(langs),
+  };
+}
 
 function buildStatus() {
   return {

@@ -100,6 +100,106 @@ async function patchSettings(patch) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Thăm dò kỹ thuật                                                    */
+/* ------------------------------------------------------------------ */
+
+/** Gửi message tới service worker (khác với send() ở trên — cái đó gửi tới tab). */
+function sendToSw(message) {
+  return chrome.runtime.sendMessage(message).catch((err) => ({ error: String(err) }));
+}
+
+const LANGS = { sourceLanguage: 'vi', targetLanguage: 'en' };
+
+/**
+ * Chạy cả hai phép thử chặn cửa và đổ kết quả ra màn hình.
+ *
+ * Translator API được thử ở BA context vì tài liệu Chrome chỉ nói rõ về
+ * "top-level window"; offscreen document và service worker là vùng xám, phải
+ * đo thực tế mới biết nên đặt phần dịch ở đâu.
+ */
+async function runProbe() {
+  const btn = $('probeRun');
+  btn.disabled = true;
+  btn.textContent = 'Đang thử…';
+
+  const [page, sw, offscreen] = await Promise.all([
+    send({ type: 'SF_PROBE', langs: LANGS }),
+    sendToSw({ type: 'SF_PROBE_TRANSLATOR_SW', target: 'sw', langs: LANGS }),
+    sendToSw({ type: 'SF_PROBE_TRANSLATOR_OFFSCREEN', target: 'sw', langs: LANGS }),
+  ]);
+
+  renderProbe({ page, sw, offscreen });
+
+  btn.disabled = false;
+  btn.textContent = 'Chạy lại';
+}
+
+function renderProbe({ page, sw, offscreen }) {
+  const out = $('probeOut');
+
+  if (!page) {
+    out.innerHTML = row(
+      'Kết quả',
+      '<span class="verdict bad">Không frame nào có video</span> — mở trang phim, bấm play rồi thử lại.'
+    );
+    return;
+  }
+
+  const t = page.taint;
+  const items = [
+    row('Trang', esc(page.hostname)),
+    row('Nguồn video', esc(t.srcKind ?? '—')),
+    row(
+      'Đọc pixel',
+      t.ok
+        ? '<span class="verdict ok">ĐỌC ĐƯỢC</span> — OCR chạy được trên site này'
+        : `<span class="verdict bad">KHÔNG ĐỌC ĐƯỢC</span><br>${esc(t.error ?? '')}`
+    ),
+  ];
+
+  if (t.videoSize?.width) {
+    items.push(row('Khung hình', `${t.videoSize.width} × ${t.videoSize.height}`));
+  }
+  if (t.hasDrm) {
+    items.push(row('DRM', '<span class="verdict bad">Có</span> — OCR bất khả thi, không có cách lách'));
+  }
+
+  // Ba context, mỗi cái một dòng: cái nào xanh thì đặt phần dịch ở đó.
+  for (const [label, res] of [
+    ['Dịch · trang', page.translator],
+    ['Dịch · offscreen', offscreen],
+    ['Dịch · worker', sw],
+  ]) {
+    items.push(row(label, translatorVerdict(res)));
+  }
+
+  if (page.translator?.sample) {
+    items.push(row('Câu thử', `→ ${esc(page.translator.sample)}`));
+  }
+
+  out.innerHTML = `<dl>${items.join('')}</dl>`;
+}
+
+function translatorVerdict(res) {
+  if (!res || res.error) {
+    return `<span class="bad">không dùng được</span> — ${esc(res?.error ?? 'không phản hồi')}`;
+  }
+  const map = {
+    available: '<span class="verdict ok">SẴN SÀNG</span>',
+    downloadable: '<span class="verdict warn">CẦN TẢI MODEL</span> — dùng được, Chrome tải lần đầu',
+    downloading: '<span class="verdict warn">ĐANG TẢI</span>',
+    unavailable: '<span class="verdict bad">KHÔNG HỖ TRỢ</span>',
+  };
+  return `${map[res.availability] ?? esc(String(res.availability))} <span style="color:var(--muted)">(${esc(res.api ?? '—')})</span>`;
+}
+
+const row = (label, value) => `<div class="item"><dt>${label}</dt><dd>${value}</dd></div>`;
+
+/** Chặn HTML injection — kết quả probe có chứa URL và message lỗi từ trang web. */
+const esc = (s) =>
+  String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+/* ------------------------------------------------------------------ */
 /* Khởi động                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -138,6 +238,8 @@ async function init() {
       nudge(+btn.dataset.nudge, +btn.dataset.delta)
     );
   }
+
+  $('probeRun').addEventListener('click', runProbe);
 }
 
 init();

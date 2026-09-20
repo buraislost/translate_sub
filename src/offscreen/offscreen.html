@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <title>SubForge — offscreen</title>
+  </head>
+  <body>
+    <!--
+      Trang này không bao giờ hiện ra màn hình. Nó tồn tại vì service worker
+      của MV3 không có DOM, trong khi ta cần hai thứ bắt buộc phải có DOM:
+
+        - Tesseract.js (WASM worker)
+        - Translator API — tài liệu Chrome ghi rõ KHÔNG chạy trong Web Worker
+
+      Đây cũng là nơi duy nhất trong extension sống lâu hơn service worker,
+      nên mọi tác vụ dài (OCR cả bộ phim) phải neo ở đây.
+    -->
+    <script type="module" src="offscreen.js"></script>
+  </body>
+</html>
