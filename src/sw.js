@@ -119,6 +119,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         .catch((err) => sendResponse({ context: 'offscreen document', error: String(err) }));
       return true;
 
+    // Content script chỉ cần offscreen tồn tại rồi nói chuyện THẲNG với nó; service
+    // worker chỉ làm việc dựng (createDocument là việc chỉ service worker làm được).
+    case 'SF_ENSURE_OFFSCREEN':
+      ensureOffscreen()
+        .then(() => sendResponse({ ok: true }))
+        .catch((err) => sendResponse({ ok: false, error: String(err?.message ?? err) }));
+      return true;
+
     // Self-test OCR: nạp Tesseract rồi đọc mấy ảnh tự vẽ. Chạy lâu (lần đầu
     // phải giải nén ~3,9MB WASM) nên bật heartbeat trong lúc chờ, không thì
     // service worker bị kill giữa chừng và message trả về rơi mất.

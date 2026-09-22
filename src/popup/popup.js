@@ -57,6 +57,96 @@ function renderStatus(status) {
     const off = status.offsets[i] || 0;
     $(`off${i}`).textContent = `${off > 0 ? '+' : ''}${off.toFixed(1)}s`;
   }
+
+  renderOcrStatus(status.ocr);
+}
+
+/**
+ * Trạng thái OCR — tính năng chính của extension.
+ *
+ * Ba lỗi phải báo RÕ RÀNG thay vì im lặng, vì cả ba đều khiến người dùng ngồi
+ * nhìn màn hình trống mà không hiểu vì sao:
+ *   - unreadable: video DRM/cross-origin, không có cách nào đọc pixel
+ *   - invalidated: extension vừa được nạp lại (dev reload), content script mồ côi
+ *   - translate chưa sẵn sàng: model dịch chưa tải — cần bấm nút, không tự tải được
+ */
+function renderOcrStatus(ocr) {
+  const toggle = $('ocrToggle');
+  const showViRow = $('ocrShowViRow');
+  const showVi = $('ocrShowVi');
+  const out = $('ocrStatus');
+
+  const on = Boolean(ocr?.on);
+  toggle.checked = on;
+  showViRow.hidden = !on;
+  if (on) showVi.checked = Boolean(ocr.showVi);
+
+  if (!on) {
+    out.hidden = true;
+    return;
+  }
+  out.hidden = false;
+
+  if (ocr.unreadable) {
+    out.innerHTML = `<span class="bad">Không đọc được hình video này</span> — thường do DRM (Netflix, Disney+…) hoặc video chặn CORS. Không có cách nào lách được.`;
+    return;
+  }
+  if (ocr.invalidated) {
+    out.innerHTML = `<span class="bad">Extension vừa được nạp lại</span> — tải lại trang phim rồi bật lại.`;
+    return;
+  }
+
+  const lines = [
+    `Đã đọc <strong>${ocr.cueCount ?? 0}</strong> câu · quét ${ocr.scans ?? 0} lần` +
+      (ocr.rejected ? ` · bỏ ${ocr.rejected} kết quả rác` : ''),
+  ];
+  if (ocr.errors) lines.push(`<span class="warn">${ocr.errors} lỗi</span>${ocr.lastError ? `: ${esc(ocr.lastError)}` : ''}`);
+
+  const t = ocr.translate;
+  if (t && t.state !== 'ok') {
+    if (t.state === 'download-needed' || t.state === 'downloading') {
+      out.innerHTML =
+        lines.join('<br>') +
+        `<br><span class="warn">Model dịch chưa sẵn sàng</span> — tải một lần, dùng mãi.` +
+        `<button class="ocr-download" id="ocrDownloadModel" type="button">Tải model dịch Việt → Anh</button>`;
+      $('ocrDownloadModel').addEventListener('click', downloadModelThenRetry);
+      return;
+    }
+    if (t.state === 'unsupported' || t.state === 'unavailable') {
+      lines.push(`<span class="bad">Máy này không dùng được Translator API</span> — cần Chrome 138 trở lên.`);
+    } else if (t.state === 'error') {
+      lines.push(`<span class="warn">Dịch lỗi</span>: ${esc(t.message || '')}`);
+    }
+  }
+
+  out.innerHTML = lines.join('<br>');
+}
+
+/**
+ * Tải model dịch — PHẢI chạy trong popup vì Chrome đòi user gesture để bắt đầu tải
+ * model AI on-device, và offscreen document (nơi pipeline thật gọi Translator) không
+ * bao giờ có gesture. Tải xong một lần thì mọi context dùng chung, không phải tải lại.
+ */
+async function downloadModelThenRetry(e) {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.textContent = 'Đang tải…';
+  try {
+    const translator = await Translator.create({
+      ...LANGS,
+      monitor(m) {
+        m.addEventListener('downloadprogress', (ev) => {
+          btn.textContent = `Đang tải… ${Math.round(ev.loaded * 100)}%`;
+        });
+      },
+    });
+    translator.destroy?.();
+  } catch {
+    // renderOcrStatus dưới đây sẽ đọc lại trạng thái thật từ content script và
+    // hiện đúng lý do nếu tải thất bại — không cần xử lý riêng ở đây.
+  }
+  const status = await send({ type: 'SF_OCR_RETRY_TRANSLATE' });
+  renderStatus(status);
 }
 
 /** Khung xem thử phản chiếu đúng cài đặt hiện tại. */
@@ -442,6 +532,27 @@ async function init() {
   $('modelRun').addEventListener('click', runModel);
   $('ocrRun').addEventListener('click', runOcr);
   $('hardsubRun').addEventListener('click', runHardsub);
+
+  $('ocrToggle').addEventListener('change', async (e) => {
+    e.target.disabled = true;
+    const status = e.target.checked
+      ? await send({ type: 'SF_OCR_ENABLE', showVi: $('ocrShowVi').checked })
+      : await send({ type: 'SF_OCR_DISABLE' });
+    e.target.disabled = false;
+    renderStatus(status);
+  });
+
+  $('ocrShowVi').addEventListener('change', async (e) => {
+    const status = await send({ type: 'SF_OCR_SET_SHOW_VI', showVi: e.target.checked });
+    renderStatus(status);
+  });
+
+  // OCR chạy nền trong content script và tự cập nhật — popup phải tự hỏi lại định
+  // kỳ để số liệu (đã đọc bao nhiêu câu, còn lỗi không) không đứng yên trong lúc mở.
+  setInterval(async () => {
+    if (document.hidden) return;
+    renderStatus(await send({ type: 'SF_STATUS' }));
+  }, 1500);
 }
 
 init();

@@ -9,7 +9,7 @@
  * đứng trước gạch cũng được nuốt luôn).
  *
  * Viết bằng regex LITERAL, không dựng từ chuỗi: chuỗi template chứa dấu gạch chéo ngược
- * kép đã từng bị mất một dấu khi ghi file, làm "s" thành chữ "s" thường — regex vẫn
+ * kép đã từng bị mất một dấu khi ghi file, làm `\s` thành chữ `s` thường — regex vẫn
  * chạy nhưng khớp sai âm thầm.
  */
 const LEADING_DASH_RE = /^[\s_¬~^*.,]*[-–—‒―]\s*/;
