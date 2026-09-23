@@ -49,6 +49,8 @@ export class TranslatedSource extends SubtitleSource {
 
   async start() {
     if (this._off) return;
+    // Tạo sẵn translator song song với lúc OCR đang nạp engine — không chờ, không chặn.
+    this.client.translateWarm?.(this.from, this.to)?.catch?.(() => {});
     this._off = this.inner.onCue((cue) => this._enqueue(cue));
     // Cue đã có sẵn từ trước (nạp từ cache) mà chưa có bản dịch thì dịch bù.
     for (const cue of this.inner.cues) if (!this._hasTranslation(cue)) this._enqueue(cue);

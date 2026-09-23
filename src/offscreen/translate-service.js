@@ -35,6 +35,21 @@ export class TranslateService {
     }
   }
 
+  /**
+   * Tạo sẵn translator ngay lúc bật OCR, chạy song song với việc nạp Tesseract.
+   * Không có bước này, câu phụ đề ĐẦU TIÊN phải chờ thêm lần tạo translator (đo được
+   * ~75ms khi model đã có sẵn) sau khi đã chờ OCR xong.
+   * Model chưa tải thì im lặng bỏ qua — lần translate() thật sẽ báo đúng mã lỗi.
+   */
+  async warm(from = 'vi', to = 'en') {
+    try {
+      await this._translatorFor(from, to);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, code: err?.code ?? 'error', message: String(err?.message ?? err) };
+    }
+  }
+
   translate(text, from = 'vi', to = 'en') {
     const run = this._chain.then(() => this._run(text, from, to));
     this._chain = run.catch(() => {});

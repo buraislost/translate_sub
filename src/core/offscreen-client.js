@@ -45,8 +45,9 @@ export class OffscreenClient {
     return res;
   }
 
-  ocr({ dataUrl, frameH, lang }) {
-    return this.call('SF_OCR', { dataUrl, frameH, lang });
+  /** @param {{luma: string, width: number, height: number, frameH: number, lang: string}} req */
+  ocr({ luma, width, height, frameH, lang }) {
+    return this.call('SF_OCR', { luma, width, height, frameH, lang });
   }
 
   warm(lang) {
@@ -55,6 +56,10 @@ export class OffscreenClient {
 
   translate({ text, from, to }) {
     return this.call('SF_TRANSLATE', { text, from, to });
+  }
+
+  translateWarm(from, to) {
+    return this.call('SF_TRANSLATE_WARM', { from, to });
   }
 
   async translatorAvailability(from, to) {

@@ -94,7 +94,7 @@ export class TesseractEngine {
 
   /**
    * Đọc chữ từ một ảnh.
-   * @param {ImageBitmap|HTMLCanvasElement|Blob|string} image
+   * @param {Uint8Array|Blob|string} image byte của một file ảnh (PGM/PNG…) — Leptonica tự nhận định dạng
    * @returns {Promise<{text: string, confidence: number, words: Array, ms: number}>}
    */
   async recognize(image) {

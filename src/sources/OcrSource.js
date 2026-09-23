@@ -11,18 +11,34 @@ import { isContextInvalidated } from '../core/offscreen-client.js';
  * SubtitleSource có `onCue`: cue đến dần theo lúc xem, không có sẵn từ đầu.
  *
  * Hai tầng để trang phim không giật:
- *   - Tầng nhẹ (ở đây, mỗi ~280ms): quét dải đáy ở nửa độ phân giải, ~1,3 ms
- *   - Tầng nặng (offscreen, chỉ khi có CÂU MỚI): mặt nạ đầy đủ + Tesseract, ~100–200 ms
+ *   - Tầng nhẹ (ở đây, mỗi ~100ms): quét dải đáy ở nửa độ phân giải, ~1,3 ms
+ *   - Tầng nặng (offscreen, chỉ khi có CÂU MỚI): mặt nạ đầy đủ + Tesseract, ~50–150 ms
  *
  * Kế thừa SubtitleSource nên Renderer và SyncEngine không biết (và không cần biết)
  * cue này đến từ OCR.
  */
+
+/**
+ * Nhịp quét tầng nhẹ. Đây là trần của độ trễ PHÁT HIỆN: câu mới có thể xuất hiện ngay
+ * sau một lần quét và phải chờ trọn một nhịp mới được thấy (trung bình nửa nhịp).
+ * Bản đầu dùng 280ms. Quét nhẹ chỉ ~1,3ms nên 100ms (≈10 lần/giây) tốn chưa tới 2% một
+ * nhân CPU mà cắt trung bình ~90ms độ trễ.
+ */
+const DEFAULT_INTERVAL = 0.1;
+
+/**
+ * Chữ phải vắng mặt liên tục chừng này giây mới coi là câu đã hết. Tính theo GIÂY chứ
+ * không theo số lần quét: quét dày hơn thì cần nhiều lần trống hơn mới đủ chắc — không
+ * thì một khung nhiễu ~0,2s lúc chuyển cảnh cũng cắt câu làm đôi và tốn một lần OCR thừa.
+ */
+const CLOSE_AFTER_EMPTY_SEC = 0.3;
+
 export class OcrSource extends SubtitleSource {
   /**
    * @param {{client: import('../core/offscreen-client.js').OffscreenClient,
    *          lang?: string, interval?: number, bandTop?: number}} opts
    */
-  constructor({ client, lang = 'vie', interval = 0.28, bandTop = 0.62 } = {}) {
+  constructor({ client, lang = 'vie', interval = DEFAULT_INTERVAL, bandTop = 0.62 } = {}) {
     super('ocr');
     this.client = client;
     this.lang = lang;
@@ -49,6 +65,7 @@ export class OcrSource extends SubtitleSource {
     this._pub = new Map();
     this._tracker = new CueTracker({
       interval,
+      emptyToClose: Math.max(2, Math.round(CLOSE_AFTER_EMPTY_SEC / interval)),
       onBegin: (tc) => this._onBegin(tc),
       onUpdate: (tc) => this._onUpdate(tc),
       onEnd: (tc) => this._onEnd(tc),
@@ -214,8 +231,9 @@ export class OcrSource extends SubtitleSource {
       // Câu đã kết thúc từ lâu thì khung hình hiện tại không còn chứa nó nữa.
       if (tc.done && this.video.currentTime - tc.end > 0.6) return;
 
-      const dataUrl = await this.scanner.cropDataUrl(tc.meta.rect);
-      const res = await this.client.ocr({ dataUrl, frameH: tc.meta.frameH, lang: this.lang });
+      // Đồng bộ, ~2–4ms: cắt + đổi sang mặt phẳng xám base64 (xem BandScanner.cropLuma).
+      const crop = this.scanner.cropLuma(tc.meta.rect);
+      const res = await this.client.ocr({ ...crop, frameH: tc.meta.frameH, lang: this.lang });
       this.info.ocrRequests++;
       this._onOcr(tc, res);
     } catch (err) {

@@ -44,13 +44,16 @@ const HANDLERS = {
   SF_OCR_SELFTEST: safe((m) => runSelfTest(m.lang)),
 
   SF_OCR_WARM: safe((m) => ocr.warm(m.lang)),
-  SF_OCR: safe((m) => ocr.recognize({ dataUrl: m.dataUrl, frameH: m.frameH, lang: m.lang })),
+  SF_OCR: safe((m) =>
+    ocr.recognize({ luma: m.luma, width: m.width, height: m.height, frameH: m.frameH, lang: m.lang })
+  ),
 
   SF_TRANSLATOR_STATUS: safe(async (m) => ({
     ok: true,
     availability: await translator.availability(m.from ?? 'vi', m.to ?? 'en'),
   })),
   SF_TRANSLATE: safe((m) => translator.translate(m.text, m.from ?? 'vi', m.to ?? 'en')),
+  SF_TRANSLATE_WARM: safe((m) => translator.warm(m.from ?? 'vi', m.to ?? 'en')),
 
   SF_OFFSCREEN_STATS: safe(async () => ({
     ok: true,

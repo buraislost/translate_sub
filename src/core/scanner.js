@@ -5,19 +5,11 @@
  * 1,3 ms/lần quét ở nửa độ phân giải. Phần đắt (mặt nạ đầy đủ + OCR) nằm ở offscreen.
  */
 
-import { quickScan } from './preprocess.js';
+import { quickScan, lumaPlane } from './preprocess.js';
+import { bytesToBase64 } from './bytes.js';
 
 /** Bề rộng ảnh quét. Ở 1080p nét chữ ~10px → ~5px ở 960 rộng, còn giữ được lõi trắng tinh. */
 const SCAN_WIDTH = 960;
-
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
-}
 
 export class BandScanner {
   /**
@@ -35,7 +27,7 @@ export class BandScanner {
     // tránh mỗi lần getImageData lại phải chép ngược từ GPU về.
     this.scanCtx = this.scanCanvas.getContext('2d', { willReadFrequently: true });
     this.cropCanvas = document.createElement('canvas');
-    this.cropCtx = this.cropCanvas.getContext('2d');
+    this.cropCtx = this.cropCanvas.getContext('2d', { willReadFrequently: true });
   }
 
   /**
@@ -84,19 +76,24 @@ export class BandScanner {
   }
 
   /**
-   * Cắt vùng chữ ở độ phân giải gốc thành PNG (data URL).
+   * Cắt vùng chữ ở độ phân giải gốc, trả về mặt phẳng XÁM (1 byte/pixel) dạng base64.
    *
-   * PNG chứ không JPEG: nén mất dữ liệu làm nhoè lõi trắng tinh và viền đen — chính hai
-   * thứ mặt nạ dựa vào. Dùng toBlob (bất đồng bộ, mã hoá ở luồng nền) thay vì toDataURL
-   * (đồng bộ, chặn luồng chính của trang ~30–50 ms).
+   * Bản đầu mã hoá PNG (canvas.toBlob) rồi đọc thành data URL (FileReader): đo được
+   * 7–122ms, qua hai lần chờ bất đồng bộ. Bản này đồng bộ hoàn toàn, ~2–4ms:
+   *   - Xám thay vì RGBA: tầng nặng chỉ đọc độ sáng. Đã kiểm trên 22 khung thật — ảnh
+   *     đưa vào Tesseract giống hệt từng pixel (tests/bytes.test.mjs), nhẹ đi 4 lần.
+   *   - Base64 thay vì ArrayBuffer: messaging của extension serialize bằng JSON,
+   *     ArrayBuffer tới nơi thành `{}` rỗng (đã thử) — phải đi dưới dạng chuỗi.
+   * Không nén nên không mất dữ liệu: lõi trắng tinh và viền đen còn nguyên.
    */
-  async cropDataUrl(rect) {
+  cropLuma(rect) {
     const c = this.cropCanvas;
-    c.width = rect.w;
-    c.height = rect.h;
+    if (c.width !== rect.w || c.height !== rect.h) {
+      c.width = rect.w;
+      c.height = rect.h;
+    }
     this.cropCtx.drawImage(this.video, rect.x, rect.y, rect.w, rect.h, 0, 0, rect.w, rect.h);
-    const blob = await new Promise((resolve) => c.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('canvas.toBlob trả về null');
-    return blobToDataUrl(blob);
+    const img = this.cropCtx.getImageData(0, 0, rect.w, rect.h);
+    return { luma: bytesToBase64(lumaPlane(img)), width: rect.w, height: rect.h };
   }
 }

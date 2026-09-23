@@ -9,25 +9,14 @@
 
 import { prepareForOcr } from '../core/preprocess.js';
 import { cleanOcrText } from '../core/text-utils.js';
+import { base64ToBytes, grayToRgba, rgbaToPgm } from '../core/bytes.js';
 import { TesseractEngine } from './ocr-engine.js';
 
-/** Giải mã data URL base64 thành Blob mà không cần fetch(). */
-function dataUrlToBlob(dataUrl) {
-  const comma = dataUrl.indexOf(',');
-  const mime = /^data:([^;,]+)/.exec(dataUrl)?.[1] ?? 'image/png';
-  const bin = atob(dataUrl.slice(comma + 1));
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new Blob([bytes], { type: mime });
-}
-
-async function imageToBlob(img) {
-  const canvas = new OffscreenCanvas(img.width, img.height);
-  canvas
-    .getContext('2d')
-    .putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0);
-  return canvas.convertToBlob({ type: 'image/png' });
-}
+// Cố ý KHÔNG dùng OffscreenCanvas.convertToBlob ở file này. Offscreen document là trang
+// ẩn nên Chrome bóp nhịp nó: convertToBlob mất đúng ~1000ms mỗi lần khi popup đóng —
+// đo 22 lần liên tiếp 1005–1012ms, chiếm gần hết độ trễ ~1,2s của bản đầu. Mọi bước ở
+// đây giờ đồng bộ (atob, dựng PGM) hoặc đi qua postMessage tới worker của Tesseract,
+// vốn không bị bóp nhịp. Xem src/core/bytes.js.
 
 export class OcrService {
   /** @param {TesseractEngine} [engine] dùng chung engine của offscreen để khỏi nạp WASM hai lần */
@@ -45,8 +34,8 @@ export class OcrService {
   }
 
   /**
-   * @param {{dataUrl: string, frameH?: number, lang?: string}} req
-   * dataUrl: ảnh PNG cắt ở ĐỘ PHÂN GIẢI GỐC của video (không thu nhỏ)
+   * @param {{luma: string, width: number, height: number, frameH?: number, lang?: string}} req
+   * luma:    mặt phẳng xám (1 byte/pixel) dạng base64, cắt ở ĐỘ PHÂN GIẢI GỐC của video
    * frameH:  chiều cao khung hình gốc — để quy đổi bán kính bộ lọc theo độ phân giải
    */
   recognize(req) {
@@ -56,18 +45,12 @@ export class OcrService {
     return run;
   }
 
-  async _run({ dataUrl, frameH = 1080, lang = 'vie' }) {
+  async _run({ luma, width, height, frameH = 1080, lang = 'vie' }) {
     this.stats.requests++;
     await this.engine.init({ lang });
 
     const t0 = performance.now();
-    const bitmap = await createImageBitmap(dataUrlToBlob(dataUrl));
-    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(bitmap, 0, 0);
-    bitmap.close?.();
-    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
+    const img = grayToRgba(base64ToBytes(luma), width, height);
     const prepared = prepareForOcr(img, { scale: frameH / 1080 });
     const prepMs = Math.round(performance.now() - t0);
 
@@ -78,7 +61,9 @@ export class OcrService {
       return { ok: true, none: true, prepMs };
     }
 
-    const res = await this.engine.recognize(await imageToBlob(prepared.image));
+    // Uint8Array đưa thẳng cho Tesseract: nó ghi nguyên byte vào FS ảo của WASM rồi để
+    // Leptonica tự nhận dạng định dạng — PGM không phải đi qua FileReader hay giải nén.
+    const res = await this.engine.recognize(rgbaToPgm(prepared.image));
     const clean = cleanOcrText(res.text, { confidence: res.confidence });
     this.stats.lastMs = prepMs + res.ms;
     if (clean.ok) this.stats.ok++;

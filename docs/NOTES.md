@@ -62,8 +62,10 @@ Thêm website mới = thêm file ~30 dòng trong `src/adapters/`, đăng ký và
 Content script                          Offscreen document
 ───────────────                         ──────────────────
 scanner.js: quét dải đáy khung hình      ocr-service.js: mặt nạ đầy đủ
-  mỗi ~280ms, nửa độ phân giải,            (preprocess.js: top-hat, hạt
+  mỗi ~100ms, nửa độ phân giải,            (preprocess.js: top-hat, hạt
   ~1,3ms/lần (quickScan)                   giống trắng, gom cụm) + Tesseract
+  câu mới → cropLuma(): mặt phẳng xám       nhận mặt phẳng xám → mặt nạ →
+  1 byte/pixel, base64 (bytes.js)          PGM (không phải PNG!) → Tesseract
         │                                         │
 cue-tracker.js: chữ ký đổi → câu mới?    translate-service.js: hàng đợi
         │                                  dịch tuần tự, cache theo text
@@ -95,6 +97,7 @@ src/
     scanner.js         BandScanner — lấy dải khung hình từ <video>
     text-utils.js      dọn chuỗi OCR, tách/gộp phát ngôn để dịch
     text-metrics.js    levenshtein/CER/WER, chuẩn hoá NFC
+    bytes.js           base64 (qua kênh JSON), xám↔RGBA, dựng PGM cho Tesseract
     offscreen-client.js  content script gọi offscreen (tự ensure + retry)
     idb-cache.js       cache cue vào IndexedDB của trang, theo href+duration
     errors.js          describeError() — mô tả lỗi dù là Error/chuỗi/khác
@@ -141,6 +144,34 @@ qua đúng đường message thật (không gọi hàm nội bộ), để 45 gi�
 - Câu đọc ra giữ đúng dấu tiếng Việt, kể cả dấu chồng
 - Dịch báo đúng trạng thái `download-needed` khi model chưa tải (profile Chrome sạch)
 - `SF_STATUS` phản ánh đúng số liệu cho popup ở mọi thời điểm
+
+### Độ trễ — đo, tìm nguyên nhân, sửa, đo lại
+
+Đo độ trễ **người xem cảm nhận**: mốc gốc là một bộ dò chạy MỖI KHUNG HÌNH trong
+main world của trang (`requestVideoFrameCallback` + chính `quickScan`, nạp qua
+`web_accessible_resources`), mốc hiển thị là `MutationObserver` trên Shadow DOM
+(mode `open`) của overlay. Cùng đoạn phim (t=2420→2480s, 17 câu), popup ĐÓNG.
+
+| | Bản đầu | Sau khi sửa |
+|---|---|---|
+| Tiếng Việt — trung bình / p90 | 1219 / 1299ms | **91 / 207ms** |
+| Tiếng Anh — trung bình / p90 | 1234 / 1317ms | **108 / 230ms** |
+| Câu bắt được | 15/17 | **17/17** |
+
+Tách từng khâu bằng đồng hồ hai phía (`Date.now()` cùng đồng hồ hệ thống ở mọi tiến
+trình): khứ hồi content script ↔ offscreen ~1030–1400ms, trong đó offscreen thực sự
+làm việc chỉ 30–250ms. Riêng `OffscreenCanvas.convertToBlob` (mã hoá mặt nạ thành PNG
+cho Tesseract) mất **1005–1012ms, cả 22 lần** — chính là toàn bộ khoảng trễ. Ba sửa:
+
+1. Tesseract nhận **PGM** tự dựng bằng JS thay vì PNG từ canvas — đồng bộ, không bị bóp
+   nhịp, Leptonica đọc thẳng; cùng chữ, cùng độ tin cậy, còn nhanh hơn ~30%.
+2. Content script gửi **mặt phẳng xám** base64 thay vì PNG data URL — đồng bộ, nhẹ 4 lần;
+   ảnh đưa vào Tesseract giống hệt từng pixel trên 22 khung thật (`tests/bytes.test.mjs`).
+3. Nhịp quét **280 → 100ms**; ngưỡng đóng câu tính theo giây (0,3s trống) chứ không theo
+   số lần quét. Tầng nhẹ ~1,3ms/lần nên tốn chưa tới 2% một nhân CPU.
+
+Phần còn lại (~0,1s) là giới hạn tự nhiên của chế độ Live: phải thấy chữ trên hình
+trước rồi mới đọc được. Xem lại lần hai thì cue nạp từ cache IndexedDB — không trễ.
 
 ## Quyết định đã chốt (đừng mở lại nếu không có số liệu mới)
 
@@ -200,3 +231,6 @@ Khi bắt đầu một phase, **đọc `docs/probe-report.md` và bảng cạm b
 | Truyền `logger: undefined` cho Tesseract | Ghi đè hàm mặc định của thư viện → `TypeError: m is not a function` lặp lại mỗi mốc tiến độ | Luôn truyền một hàm, kể cả rỗng: `logger: onProgress ?? (() => {})` |
 | Mặt nạ chữ chỉ lọc "sáng + viền tối" (không đòi trắng tinh) | Khe nền sáng vừa (L≈238, ví dụ bầu trời/tường) kẹp giữa hai nét chữ cũng thoả điều kiện → bị tô kín, lỗ của `o/ô/ơ` biến mất, Tesseract đọc thành khối đặc | Bắt buộc hạt giống phải **trắng tinh** (ngưỡng tự thích nghi theo phân vị 98 độ sáng của ứng viên), rồi mới nở ra lấy viền |
 | Bỏ qua thành phần liên thông, chỉ dùng khung bao của toàn bộ pixel "sáng có viền" | Vài mảnh tranh vẽ ở rìa khung kéo khung bao rộng ra hàng trăm pixel, OCR đọc luôn cả chúng | `components()` + `selectTextComponents()`: gom cụm theo dòng, chỉ giữ cụm nặng nhất mỗi dòng |
+| Gửi `ArrayBuffer`/`Uint8Array` qua `chrome.runtime.sendMessage` | Messaging của extension serialize bằng **JSON** (đã thử, Chrome 153): `ArrayBuffer` tới nơi thành `{}` rỗng, `Uint8Array` thành `{"0":7,"1":8,…}` — hỏng im lặng | Byte đi dưới dạng chuỗi base64 (`bytesToBase64` trong `src/core/bytes.js`) |
+| `OffscreenCanvas.convertToBlob` (hoặc bất kỳ API canvas bất đồng bộ nào) trong **offscreen document** | Trang ẩn bị Chrome bóp nhịp: đúng **~1000ms mỗi lần** khi không có trang nào của extension đang hiện — từng là toàn bộ độ trễ ~1,2s của phụ đề | Dựng định dạng ảnh bằng JS đồng bộ (PGM — `rgbaToPgm`). Không mã hoá ảnh bằng canvas ở offscreen |
+| Đo hiệu năng offscreen trong lúc popup (hoặc trang extension nào đó) đang mở | Popup chung tiến trình với offscreen nên Chrome coi là "đang dùng" → **không** bóp nhịp → số đo đẹp giả, che mất lỗi 1 giây | Đo với popup đã đóng — đúng điều kiện lúc người dùng xem phim |
