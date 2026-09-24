@@ -1,5 +1,7 @@
 # Translate Sub
 
+**Real-time translation of burned-in subtitles on any web video, using on-device OCR — no server.**
+
 A Chrome extension that **reads Vietnamese subtitles burned into a web video and shows an English translation** on top of it, in real time. Everything runs on your machine: OCR with Tesseract (WebAssembly), translation with Chrome's built-in on-device Translator. No server, no API key, nothing is uploaded.
 
 It can also play **two `.srt` files at once** (e.g. two languages stacked) on any page with a `<video>`.
@@ -21,7 +23,14 @@ It can also play **two `.srt` files at once** (e.g. two languages stacked) on an
 
 There is no build step and no `npm install`.
 
-### 1. Download the OCR files into `vendor/tesseract/`
+### 1. Get the code
+
+```bash
+git clone https://github.com/buraislost/translate_sub.git
+cd translate_sub
+```
+
+### 2. Download the OCR files into `vendor/tesseract/`
 
 | File | Source |
 |---|---|
@@ -30,6 +39,8 @@ There is no build step and no `npm install`.
 | `tesseract-core-simd-lstm.wasm.js` | https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0/tesseract-core-simd-lstm.wasm.js |
 | `tesseract-core-relaxedsimd-lstm.wasm.js` | https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0/tesseract-core-relaxedsimd-lstm.wasm.js |
 | `vie.traineddata` | https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/vie.traineddata |
+
+Run from the `translate_sub` folder:
 
 ```bash
 mkdir -p vendor/tesseract && cd vendor/tesseract
@@ -42,11 +53,13 @@ curl -LO https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/vie.
 
 Why local copies? Manifest V3 blocks loading scripts and WebAssembly from a CDN. Use the **uncompressed** `.traineddata`, not the `.gz` version.
 
-### 2. Load the extension
+### 3. Load the extension
 
 1. Open `chrome://extensions`.
 2. Turn on **Developer mode**.
-3. Click **Load unpacked** and select this folder.
+3. Click **Load unpacked** and select the `translate_sub` folder (the one containing `manifest.json`).
+
+After pulling updates, click the reload icon on the extension card.
 
 ## Usage
 
