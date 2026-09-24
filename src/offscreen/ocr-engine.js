@@ -98,7 +98,7 @@ export class TesseractEngine {
    * @returns {Promise<{text: string, confidence: number, words: Array, ms: number}>}
    */
   async recognize(image) {
-    if (!this.worker) throw new Error('Engine chưa init()');
+    if (!this.worker) throw new Error('Engine not initialized — call init() first');
 
     const t0 = performance.now();
     // Tham số thứ ba chọn dữ liệu trả về. Phải xin `blocks` thì mới có

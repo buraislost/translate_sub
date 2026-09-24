@@ -17,7 +17,7 @@ const STORE = 'cues';
 function openDb() {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
-      reject(new Error('IndexedDB không có ở context này'));
+      reject(new Error('IndexedDB is not available in this context'));
       return;
     }
     const req = indexedDB.open(DB_NAME, 1);

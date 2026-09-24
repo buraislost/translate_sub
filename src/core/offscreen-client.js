@@ -15,7 +15,7 @@ import { describeError } from './errors.js';
 async function send(msg) {
   try {
     const res = await chrome.runtime.sendMessage(msg);
-    return res ?? { ok: false, transport: true, error: 'không phản hồi' };
+    return res ?? { ok: false, transport: true, error: 'no response' };
   } catch (err) {
     return { ok: false, transport: true, error: describeError(err) };
   }

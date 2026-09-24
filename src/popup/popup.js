@@ -42,19 +42,19 @@ function renderStatus(status) {
   $('ocrToggle').disabled = !hasVideo;
 
   if (!hasVideo) {
-    $('status').textContent = 'Chưa thấy video trên trang này — mở trang phim và bấm play.';
+    $('status').textContent = 'No video on this page — open a video and press play.';
     renderOcrStatus(null);
     return;
   }
 
   $('status').innerHTML =
     `Video <strong>${fmtDuration(status.duration)}</strong> · ` +
-    `<kbd>Shift</kbd>+<kbd>Z</kbd> / <kbd>Shift</kbd>+<kbd>X</kbd> chỉnh lệch 0,5 giây`;
+    `<kbd>Shift</kbd>+<kbd>Z</kbd> / <kbd>Shift</kbd>+<kbd>X</kbd> shift timing by 0.5 s`;
 
   for (const i of [1, 2]) {
     const track = status.tracks[i];
-    $(`name${i}`).textContent = track ? track.label : 'Chọn file';
-    $(`count${i}`).textContent = track ? `${track.count} dòng` : '';
+    $(`name${i}`).textContent = track ? track.label : 'Choose file';
+    $(`count${i}`).textContent = track ? `${track.count} lines` : '';
     $(`pick${i}`).classList.toggle('loaded', Boolean(track));
 
     const off = status.offsets[i] || 0;
@@ -83,38 +83,38 @@ function renderOcrStatus(ocr) {
   $('ocrShowVi').checked = Boolean(ocr.showVi);
 
   if (ocr.unreadable) {
-    out.innerHTML = '<span class="bad">Không đọc được hình video này</span> — trang dùng DRM hoặc chặn truy cập. Không có cách khắc phục.';
+    out.innerHTML = '<span class="bad">Can’t read this video’s frames</span> — the site uses DRM or blocks access. There is no workaround.';
     return;
   }
   if (ocr.invalidated) {
-    out.innerHTML = '<span class="bad">Extension vừa được cập nhật</span> — tải lại trang phim rồi bật lại.';
+    out.innerHTML = '<span class="bad">The extension was just updated</span> — reload the page, then turn this on again.';
     return;
   }
 
   const lines = [];
   const count = ocr.cueCount ?? 0;
   if (count > 0) {
-    lines.push(`Đã đọc <strong>${count}</strong> câu`);
+    lines.push(`Read <strong>${count}</strong> ${count === 1 ? 'line' : 'lines'}`);
   } else if ((ocr.scans ?? 0) >= NO_TEXT_AFTER_SCANS) {
-    lines.push('<span class="warn">Chưa thấy phụ đề nào trên hình</span> — phim này có thể là bản lồng tiếng. Thử server “Vietsub” trên trang phim.');
+    lines.push('<span class="warn">No subtitles found on screen yet</span> — this may be a dubbed version. Try a version with subtitles burned into the video.');
   } else {
-    lines.push('Đang dò phụ đề trên hình…');
+    lines.push('Looking for subtitles on screen…');
   }
-  if (ocr.errors) lines.push(`<span class="warn">${ocr.errors} lỗi</span>${ocr.lastError ? `: ${esc(ocr.lastError)}` : ''}`);
+  if (ocr.errors) lines.push(`<span class="warn">${ocr.errors} ${ocr.errors === 1 ? 'error' : 'errors'}</span>${ocr.lastError ? `: ${esc(ocr.lastError)}` : ''}`);
 
   const t = ocr.translate;
   if (t?.state === 'download-needed' || t?.state === 'downloading') {
     out.innerHTML =
       lines.join('<br>') +
-      '<br><span class="warn">Chưa có model dịch</span> — tải một lần, dùng mãi.' +
-      '<button class="btn" id="downloadModel" type="button">Tải model dịch Việt → Anh</button>';
+      '<br><span class="warn">Translation model not downloaded</span> — a one-time download.' +
+      '<button class="btn" id="downloadModel" type="button">Download translation model</button>';
     $('downloadModel').addEventListener('click', downloadModelThenRetry);
     return;
   }
   if (t?.state === 'unsupported' || t?.state === 'unavailable') {
-    lines.push('<span class="bad">Trình duyệt chưa dịch được</span> — cần Chrome 138 trở lên.');
+    lines.push('<span class="bad">This browser can’t translate yet</span> — requires Chrome 138 or later.');
   } else if (t?.state === 'error') {
-    lines.push(`<span class="warn">Dịch lỗi</span>: ${esc(t.message || '')}`);
+    lines.push(`<span class="warn">Translation error</span>: ${esc(t.message || '')}`);
   }
 
   out.innerHTML = lines.join('<br>');
@@ -137,13 +137,13 @@ function renderSliderValues() {
 async function downloadModelThenRetry(e) {
   const btn = e.currentTarget;
   btn.disabled = true;
-  btn.textContent = 'Đang tải…';
+  btn.textContent = 'Downloading…';
   try {
     const translator = await Translator.create({
       ...LANGS,
       monitor(m) {
         m.addEventListener('downloadprogress', (ev) => {
-          btn.textContent = `Đang tải… ${Math.round(ev.loaded * 100)}%`;
+          btn.textContent = `Downloading… ${Math.round(ev.loaded * 100)}%`;
         });
       },
     });

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "SubForge",
   "version": "0.1.0",
-  "description": "Tạo và hiển thị phụ đề song ngữ trên mọi website có video.",
+  "description": "Reads subtitles burned into any web video and shows an English translation alongside — or plays two subtitle files at once.",
   "permissions": [
     "storage",
     "activeTab",

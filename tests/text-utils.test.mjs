@@ -51,7 +51,7 @@ test('ít hơn 2 chữ hoặc độ tin cậy thấp thì không tin', () => {
   assert.equal(cleanOcrText('|| ~').ok, false);
   const low = cleanOcrText('Lư, v.)N va', { confidence: 22 });
   assert.equal(low.ok, false);
-  assert.match(low.reason, /tin cậy/);
+  assert.match(low.reason, /confidence/);
 });
 
 /* ------------------------------------------------------------------ */

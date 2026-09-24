@@ -148,7 +148,7 @@ async function enableOcr({ showVi = false } = {}) {
     if (cached?.records?.length) {
       ocr.restore(cached.records);
       translated.restore(cached.records);
-      state.renderer?.toast(`Đã nạp ${cached.records.length} dòng đã lưu`);
+      state.renderer?.toast(`Loaded ${cached.records.length} saved lines`);
     }
   }
 
@@ -274,7 +274,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
     case 'SF_LOAD_TRACK': {
       const count = applyTrack(msg.index, msg.content, msg.label);
-      state.renderer?.toast(`Đã nạp ${count} dòng`);
+      state.renderer?.toast(`Loaded ${count} lines`);
       sendResponse(buildStatus());
       return true;
     }
@@ -377,7 +377,7 @@ document.addEventListener(
       state.sync.setOffset(index, +(state.sync.getOffset(index) + delta).toFixed(2));
     }
     const value = state.sync.getOffset(1);
-    state.renderer?.toast(`Lệch ${value > 0 ? '+' : ''}${value.toFixed(1)}s`);
+    state.renderer?.toast(`Offset ${value > 0 ? '+' : ''}${value.toFixed(1)}s`);
   },
   true
 );

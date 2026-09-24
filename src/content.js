@@ -15,6 +15,6 @@
   try {
     await import(chrome.runtime.getURL('src/main.js'));
   } catch (err) {
-    console.error('[SubForge] Không nạp được main.js:', err);
+    console.error('[SubForge] Failed to load main.js:', err);
   }
 })();

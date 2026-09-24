@@ -56,8 +56,8 @@ export function cleanOcrText(raw, { confidence = 100, minConfidence = 30 } = {})
   const text = fixed.join("\n").trim();
   const letters = (text.match(/\p{L}/gu) || []).length;
 
-  if (letters < 2) return { text, ok: false, reason: "quá ít chữ" };
-  if (confidence < minConfidence) return { text, ok: false, reason: `tin cậy thấp (${Math.round(confidence)})` };
+  if (letters < 2) return { text, ok: false, reason: "too few letters" };
+  if (confidence < minConfidence) return { text, ok: false, reason: `low confidence (${Math.round(confidence)})` };
   return { text, ok: true };
 }
 

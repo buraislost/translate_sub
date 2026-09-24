@@ -104,7 +104,7 @@ export class TranslatedSource extends SubtitleSource {
           break;
         }
         this.stats.errors++;
-        this._setStatus('error', res?.message ?? res?.error ?? 'dịch thất bại');
+        this._setStatus('error', res?.message ?? res?.error ?? 'translation failed');
       }
     } finally {
       this._busy = false;

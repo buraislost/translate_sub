@@ -189,7 +189,7 @@ export class OcrSource extends SubtitleSource {
     if (err?.name === 'SecurityError') {
       // Canvas tainted: không có cách nào đọc pixel video này. Dừng hẳn thay vì thử lại mãi.
       this.info.unreadable = true;
-      this.info.lastError = 'Video không cho đọc pixel (DRM hoặc cross-origin không CORS)';
+      this.info.lastError = 'Video frames can’t be read (DRM, or cross-origin without CORS)';
       this.stop();
       this._changed();
       return;
@@ -248,7 +248,7 @@ export class OcrSource extends SubtitleSource {
 
   _onOcr(tc, res) {
     if (!res?.ok) {
-      this._noteError(res?.error ?? 'OCR thất bại');
+      this._noteError(res?.error ?? 'OCR failed');
       return;
     }
     // Tầng nhẹ báo có chữ nhưng tầng nặng không dựng được mặt nạ, hoặc chuỗi đọc ra là

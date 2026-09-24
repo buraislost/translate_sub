@@ -36,8 +36,8 @@ async function ensureOffscreen() {
         // DOM_SCRAPING mô tả đúng việc ta làm: đọc và xử lý nội dung hình ảnh.
         reasons: ['DOM_SCRAPING'],
         justification:
-          'Chạy OCR (Tesseract WASM) và dịch on-device — cả hai đều cần DOM, ' +
-          'thứ mà service worker không có.',
+          'Runs OCR (Tesseract WASM) and on-device translation — both need a DOM, ' +
+          'which a service worker does not have.',
       })
       .finally(() => {
         creating = null;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <title>SubForge</title>
@@ -183,7 +183,7 @@
     <label class="switch">
       <input type="checkbox" id="enabled" checked />
       <span class="track"></span>
-      <span>Hiện phụ đề</span>
+      <span>Show subtitles</span>
     </label>
   </header>
 
@@ -191,61 +191,61 @@
     <label class="switch main">
       <input type="checkbox" id="ocrToggle" />
       <span class="track"></span>
-      <span>Đọc sub cháy &amp; dịch sang tiếng Anh</span>
+      <span>Read subtitles &amp; translate to English</span>
     </label>
     <label class="switch sub" id="ocrShowViRow" hidden>
       <input type="checkbox" id="ocrShowVi" />
       <span class="track"></span>
-      <span>Hiện cả dòng tiếng Việt</span>
+      <span>Also show the original line</span>
     </label>
     <p class="ocr-status" id="ocrStatus" hidden></p>
   </section>
 
   <section>
     <div class="row">
-      <label class="row-label" for="fontSize">Cỡ chữ</label>
+      <label class="row-label" for="fontSize">Size</label>
       <input type="range" id="fontSize" min="14" max="46" step="1" />
       <span class="value" id="fontSizeVal"></span>
     </div>
     <div class="row">
-      <label class="row-label" for="bottom">Độ cao</label>
+      <label class="row-label" for="bottom">Position</label>
       <input type="range" id="bottom" min="0" max="30" step="1" />
       <span class="value" id="bottomVal"></span>
     </div>
   </section>
 
   <details class="files">
-    <summary>Nạp phụ đề từ file .srt</summary>
+    <summary>Load subtitles from an .srt file</summary>
     <div class="files-body">
-      <p class="files-note">Nạp file sẽ tắt chế độ đọc sub cháy.</p>
+      <p class="files-note">Loading a file turns off subtitle reading.</p>
       <div class="row">
-        <span class="row-label">Dòng trên</span>
+        <span class="row-label">Top</span>
         <button class="file-btn" id="pick1" type="button">
-          <span class="file-name" id="name1">Chọn file</span>
+          <span class="file-name" id="name1">Choose file</span>
           <span class="file-count" id="count1"></span>
         </button>
-        <div class="nudge" aria-label="Chỉnh lệch dòng trên">
-          <button type="button" data-nudge="1" data-delta="-0.5" aria-label="Sớm hơn 0,5 giây">−</button>
+        <div class="nudge" aria-label="Top line timing">
+          <button type="button" data-nudge="1" data-delta="-0.5" aria-label="0.5 seconds earlier">−</button>
           <output id="off1">0.0s</output>
-          <button type="button" data-nudge="1" data-delta="0.5" aria-label="Muộn hơn 0,5 giây">+</button>
+          <button type="button" data-nudge="1" data-delta="0.5" aria-label="0.5 seconds later">+</button>
         </div>
       </div>
       <div class="row">
-        <span class="row-label">Dòng dưới</span>
+        <span class="row-label">Bottom</span>
         <button class="file-btn" id="pick2" type="button">
-          <span class="file-name" id="name2">Chọn file</span>
+          <span class="file-name" id="name2">Choose file</span>
           <span class="file-count" id="count2"></span>
         </button>
-        <div class="nudge" aria-label="Chỉnh lệch dòng dưới">
-          <button type="button" data-nudge="2" data-delta="-0.5" aria-label="Sớm hơn 0,5 giây">−</button>
+        <div class="nudge" aria-label="Bottom line timing">
+          <button type="button" data-nudge="2" data-delta="-0.5" aria-label="0.5 seconds earlier">−</button>
           <output id="off2">0.0s</output>
-          <button type="button" data-nudge="2" data-delta="0.5" aria-label="Muộn hơn 0,5 giây">+</button>
+          <button type="button" data-nudge="2" data-delta="0.5" aria-label="0.5 seconds later">+</button>
         </div>
       </div>
     </div>
   </details>
 
-  <p class="status" id="status">Đang kiểm tra trang…</p>
+  <p class="status" id="status">Checking this page…</p>
 
   <input type="file" id="file1" accept=".srt,.vtt,.txt" hidden />
   <input type="file" id="file2" accept=".srt,.vtt,.txt" hidden />
