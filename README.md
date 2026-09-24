@@ -20,28 +20,22 @@ curl -LO https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/vie.
 ```
 
 `vendor/` isn't in the repo. MV3 doesn't allow loading scripts from a CDN, so the Tesseract files have to sit locally.
-
 Then go to `chrome://extensions`, turn on Developer mode, Load unpacked and pick the folder.
 
 ## Usage
-
 Open a video with burned-in subs, click the extension icon and turn on "Read subtitles & translate to English". The first time it asks you to download the translation model.
-
 You can also just load `.srt` files instead. Shift+Z / Shift+X shifts the timing by 0.5s.
 
 ## Notes
-
-- Scans the bottom of the frame every 100ms and only runs OCR when the line changes. The translation shows up ~0.1s after the sub appears.
-- Doesn't work on DRM video (Netflix etc.) or players in a cross-origin iframe.
+- Scans the bottom of the frame every 100ms and only runs OCR when the line changes, it shows up ~0.1s after the sub appears
+- Doesn't work on DRM video (Netflix,...) or players in a cross-origin iframe
 - Accuracy drops a lot below ~540p.
-- More details in [docs/NOTES.md](docs/NOTES.md) (in Vietnamese, same as the code comments).
+- More details in [docs/NOTES.md](docs/NOTES.md) (in Vietnamese, same as the code comments)
 
 ## Tests
-
 ```bash
 npm test
 ```
 
 ## License
-
 MIT. The Tesseract files are Apache 2.0.
