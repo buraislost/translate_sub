@@ -61,9 +61,4 @@ export class OffscreenClient {
   translateWarm(from, to) {
     return this.call('SF_TRANSLATE_WARM', { from, to });
   }
-
-  async translatorAvailability(from, to) {
-    const res = await this.call('SF_TRANSLATOR_STATUS', { from, to });
-    return res.ok ? res.availability : 'unknown';
-  }
 }

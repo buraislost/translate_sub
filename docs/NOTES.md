@@ -88,7 +88,7 @@ src/
   content.js          loader (classic script duy nhất)
   main.js             điều phối: tìm video → gắn overlay → nhận message,
                        bật/tắt OCR, khôi phục cue từ cache
-  sw.js               service worker: dựng offscreen, chuyển tiếp probe, heartbeat
+  sw.js               service worker: chỉ dựng offscreen document + dọn session
   core/
     SubtitleSource.js  contract chung
     parser.js, renderer.js, sync.js, store.js   (Sprint 1)
@@ -109,9 +109,8 @@ src/
   sources/
     SrtFileSource.js, OcrSource.js, TranslatedSource.js
   adapters/            base, universal, youtube, registry
-  popup/               giao diện — toggle OCR, thăm dò kỹ thuật
-  dev/                 probe.js, ocr-selftest.js — chỉ dùng lúc phát triển
-tests/                 test bằng node:test, không framework — 65 test
+  popup/               giao diện — toggle OCR, cỡ chữ/độ cao, file .srt (thu gọn)
+tests/                 test bằng node:test, không framework — 62 test
 docs/                  kế hoạch từng sprint + probe-report.md
 benchmark/             ground-truth gán nhãn tay — chỉ giữ cục bộ, không commit
 vendor/                Tesseract.js 7.0.0 + core + vie.traineddata (~8,2MB)
@@ -218,7 +217,7 @@ Khi bắt đầu một phase, **đọc `docs/probe-report.md` và bảng cạm b
 |---|---|---|
 | Quên `source.connect(ctx.destination)` khi lấy audio | Người dùng **mất hẳn tiếng** | Luôn nối lại về destination |
 | Canvas bị tainted | `getImageData` ném `SecurityError` | Bọc try/catch, fallback sang `tabCapture`; DRM thì chịu, không có cách nào |
-| Service worker MV3 bị kill sau ~30s idle | Phiên OCR/ASR đứt giữa chừng | Heartbeat trong lúc tác vụ chạy |
+| Service worker MV3 bị kill sau ~30s idle | Phiên OCR/ASR đứt giữa chừng | Không để việc dài phụ thuộc service worker: content script nói chuyện THẲNG với offscreen; service worker chỉ dựng offscreen khi được nhờ |
 | Gắn overlay vào `document.body` | Mất phụ đề khi fullscreen | Gắn vào `adapter.getContainer()` |
 | Chạy WASM ở main thread | Video giật | Mọi inference phải trong Web Worker |
 | OCR mỗi frame | Treo máy, đọc lại cùng câu chục lần | dHash/SSIM lọc frame trùng trước khi gọi OCR |

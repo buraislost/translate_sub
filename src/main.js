@@ -265,7 +265,7 @@ function applyTrack(index, content, label, persist = true) {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   // Frame không có video thì im lặng, nhường quyền trả lời cho frame có video.
-  if (!state.video && msg.type !== 'SF_PING') return;
+  if (!state.video) return;
 
   switch (msg.type) {
     case 'SF_STATUS':
@@ -298,18 +298,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       sendResponse(buildStatus());
       return true;
 
-    // Phép thử chặn cửa — chỉ dùng lúc phát triển. Nạp động để code thăm dò
-    // không nằm trong đường chạy chính.
-    case 'SF_PROBE':
-      runProbe(msg.langs).then(sendResponse);
-      return true;
-
-    // Tách riêng khỏi SF_PROBE vì phép thử này TUA video để lấy mẫu rải đều —
-    // thao tác gây khó chịu, chỉ chạy khi người dùng chủ động yêu cầu.
-    case 'SF_PROBE_HARDSUB':
-      runHardsubProbe(msg.samples).then(sendResponse);
-      return true;
-
     case 'SF_OCR_ENABLE':
       enableOcr({ showVi: Boolean(msg.showVi) }).then(() => sendResponse(buildStatus()));
       return true;
@@ -337,24 +325,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       return true;
   }
 });
-
-async function runHardsubProbe(samples) {
-  const { probeHardsub } = await import(chrome.runtime.getURL('src/dev/probe.js'));
-  return probeHardsub(state.video, samples ? { samples } : undefined);
-}
-
-async function runProbe(langs) {
-  const { probeTaint, probeTranslator } = await import(
-    chrome.runtime.getURL('src/dev/probe.js')
-  );
-  return {
-    url: location.href,
-    hostname: location.hostname,
-    adapter: state.adapter.constructor.id,
-    taint: probeTaint(state.video),
-    translator: await probeTranslator(langs),
-  };
-}
 
 function buildStatus() {
   return {

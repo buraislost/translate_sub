@@ -2,7 +2,9 @@
 
 Hai phép thử chặn cửa, chạy **trước** khi viết pipeline OCR. Mục đích: kiểm chứng hai giả định mà toàn bộ hướng đi đang đặt cược vào, để nếu sai thì đổi kiến trúc ngay chứ không phải sau hai tuần.
 
-Công cụ: [`src/dev/probe.js`](../src/dev/probe.js), chạy qua mục **Thăm dò kỹ thuật** trong popup.
+Công cụ: `src/dev/probe.js`, chạy qua mục **Thăm dò kỹ thuật** trong popup.
+
+> **Ghi chú sau này:** các công cụ thăm dò (`src/dev/`, `hardsub-detect.js`, mục "Thăm dò kỹ thuật") đã được gỡ khỏi repo khi dọn giao diện để công khai. Số liệu trong báo cáo này vẫn giữ nguyên; code gốc còn trong lịch sử git.
 
 ---
 
@@ -144,6 +146,6 @@ Ba điều rút ra:
 | Sửa | Vì sao |
 |---|---|
 | Thêm `src/core/hardsub-detect.js` + 8 test | Không có nó, extension OCR nhiễu hàng giờ mà không ai biết |
-| Thêm nút "Phim này có sub cháy không?" | Hỏi trước một câu rẻ hơn chạy OCR cả tập |
+| Thêm nút "Phim này có sub cháy không?" | Hỏi trước một câu rẻ hơn chạy OCR cả tập. *(Sau này thay bằng gợi ý tự hiện trong trạng thái OCR khi quét ~15 giây không thấy chữ — khỏi phải tua video.)* |
 | `getContainer()` đổi sang sai số **theo tỉ lệ** | Đo thật: video 531×299, ancestor cao 404 — chênh 105px, chỉ vừa thoát ngưỡng cứng 100px cũ. Quá sát ranh giới |
 | Vùng crop lấy từ **số đo** thay vì hằng số | Khung 1924×1040 không phải 16:9 |

@@ -12,54 +12,39 @@
     --muted: #9c8b78;
     --accent: #d8a13f;
     --accent-soft: rgba(216, 161, 63, 0.14);
+    --ok: #7fc08a;
+    --bad: #e08a7a;
   }
 
   * { box-sizing: border-box; }
 
   body {
-    width: 336px;
+    width: 320px;
     margin: 0;
     background: var(--ink);
     color: var(--text);
-    font: 400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font: 400 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
 
-  /* ---- Khung xem thử: chính là sản phẩm thu nhỏ ---- */
-  .stage {
-    position: relative;
-    height: 126px;
-    background:
-      radial-gradient(120% 90% at 50% 0%, #2c2118 0%, #120e0a 70%);
-    border-bottom: 1px solid var(--edge);
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: center;
-    padding-bottom: 14px;
-    overflow: hidden;
-  }
+  [hidden] { display: none !important; }
 
-  .stage-head {
-    position: absolute;
-    top: 10px;
-    left: 14px;
-    right: 10px;
+  section { padding: 12px 14px; border-bottom: 1px solid var(--edge); }
+
+  /* ---- Đầu popup: tên + công tắc tổng ---- */
+  header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--edge);
   }
+  .brand { font-size: 13px; font-weight: 600; letter-spacing: 0.2px; color: var(--muted); }
 
-  .brand {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    color: var(--muted);
-  }
-
+  /* ---- Công tắc ---- */
   .switch {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
     font-size: 12px;
     color: var(--muted);
     cursor: pointer;
@@ -67,6 +52,7 @@
   }
   .switch input { position: absolute; opacity: 0; }
   .track {
+    flex: none;
     width: 32px; height: 18px;
     border-radius: 9px;
     background: #3d2f23;
@@ -83,298 +69,183 @@
     transition: transform 140ms ease, background 140ms ease;
   }
   .switch input:checked + .track { background: var(--accent-soft); }
-  .switch input:checked + .track::after {
-    transform: translateX(14px);
-    background: var(--accent);
-  }
+  .switch input:checked + .track::after { transform: translateX(14px); background: var(--accent); }
   .switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-  .cue {
-    max-width: 88%;
-    padding: 1px 8px;
-    border-radius: 3px;
-    background: rgba(0, 0, 0, 0.55);
-    text-align: center;
-    text-shadow: 0 1px 3px rgba(0,0,0,.9);
-    line-height: 1.3;
+  /* Khoá khi chưa có video — phải TRÔNG như bị khoá, không thì người dùng bấm mãi không hiểu vì sao */
+  .switch:has(input:disabled) { opacity: .5; cursor: default; }
+  @media (prefers-reduced-motion: reduce) {
+    .track, .track::after { transition: none; }
   }
-  .cue-a { font-size: 15px; font-weight: 500; }
-  .cue-b { font-size: 12.5px; opacity: .9; margin-top: 3px; }
 
-  /* ---- Các nhóm điều khiển ---- */
-  section { padding: 13px 14px; border-bottom: 1px solid var(--edge); }
-  section:last-of-type { border-bottom: 0; }
+  /* ---- Khối OCR: tính năng chính ---- */
+  .ocr { background: rgba(216, 161, 63, 0.05); }
+  .ocr .switch.main { font-size: 13.5px; font-weight: 500; color: var(--text); }
+  .ocr .switch.sub { margin: 9px 0 0 40px; }
+  .ocr-status { margin: 9px 0 0 40px; font-size: 11.5px; line-height: 1.55; color: var(--muted); }
+  .ocr-status strong { color: var(--text); font-weight: 500; }
+  .ok   { color: var(--ok); }
+  .warn { color: var(--accent); }
+  .bad  { color: var(--bad); }
 
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 9px;
+  .btn {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--edge);
+    border-radius: 5px;
+    background: var(--panel);
+    color: var(--text);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
   }
+  .btn:hover { border-color: #55432f; }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* ---- Hàng điều khiển ---- */
+  .row { display: flex; align-items: center; gap: 9px; }
   .row + .row { margin-top: 9px; }
+  .row-label { width: 52px; flex: none; color: var(--muted); }
+  input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); height: 18px; }
+  .value { width: 32px; text-align: right; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-  .row-label {
-    width: 62px;
-    flex: none;
-    font-size: 13px;
+  /* ---- Phụ đề từ file: thu gọn mặc định ---- */
+  details.files { border-bottom: 1px solid var(--edge); }
+  details.files summary {
+    padding: 10px 14px;
+    font-size: 12.5px;
     color: var(--muted);
+    cursor: pointer;
+    user-select: none;
   }
+  details.files summary:hover { color: var(--text); }
+  details.files summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .files-body { padding: 0 14px 12px; }
+  .files-note { margin: 0 0 9px; font-size: 11.5px; color: var(--muted); }
+  .files-body .row-label { width: 62px; white-space: nowrap; }
 
   .file-btn {
     flex: 1;
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: 6px;
+    padding: 5px 8px;
     border: 1px solid var(--edge);
     border-radius: 5px;
     background: var(--panel);
     color: var(--text);
     font: inherit;
-    font-size: 13px;
+    font-size: 12.5px;
     text-align: left;
     cursor: pointer;
-    transition: border-color 120ms ease;
   }
   .file-btn:hover { border-color: #55432f; }
   .file-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .file-btn.loaded { border-color: rgba(216,161,63,.45); }
+  .file-btn.loaded { border-color: rgba(216, 161, 63, .45); }
+  .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-count { flex: none; margin-left: auto; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-  .file-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .file-count { flex: none; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-
-  .nudge {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex: none;
-  }
+  .nudge { display: flex; align-items: center; flex: none; }
   .nudge button {
-    width: 24px; height: 26px;
+    width: 22px; height: 26px;
     border: 1px solid var(--edge);
     background: var(--panel);
     color: var(--text);
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1;
     cursor: pointer;
     border-radius: 4px;
   }
   .nudge button:hover { border-color: #55432f; }
   .nudge button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .nudge output {
-    width: 46px;
-    text-align: center;
-    font-size: 12.5px;
-    font-variant-numeric: tabular-nums;
-    color: var(--muted);
-  }
+  .nudge output { width: 40px; text-align: center; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-  input[type="range"] {
-    flex: 1;
-    accent-color: var(--accent);
-    height: 18px;
-  }
-  .value { width: 34px; text-align: right; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-
-  .status {
-    padding: 10px 14px 13px;
-    font-size: 12px;
-    color: var(--muted);
-  }
+  /* ---- Dòng trạng thái cuối ---- */
+  .status { margin: 0; padding: 10px 14px 12px; font-size: 11.5px; color: var(--muted); }
   .status strong { color: var(--text); font-weight: 500; }
-  .hint { margin-top: 5px; }
   kbd {
-    padding: 1px 5px;
+    padding: 0 4px;
     border: 1px solid var(--edge);
     border-radius: 3px;
     background: var(--panel);
     font: inherit;
-    font-size: 11px;
+    font-size: 10.5px;
   }
-
-  [hidden] { display: none !important; }
-
-  /* ---- Khối OCR: tính năng chính — đọc sub cháy, dịch sang Anh ---- */
-  .ocr-section { background: rgba(216, 161, 63, 0.05); }
-  .ocr-row { display: flex; align-items: center; gap: 9px; }
-  .ocr-row .switch { flex: 1; font-size: 13px; color: var(--text); }
-  .ocr-sub-row { margin-top: 8px; padding-left: 4px; }
-  .ocr-sub-row .switch { font-size: 12px; }
-  .ocr-status {
-    margin: 9px 0 0;
-    font-size: 11.5px;
-    line-height: 1.55;
-    color: var(--muted);
-  }
-  .ocr-status strong { color: var(--text); font-weight: 500; }
-  .ocr-status .warn { color: var(--accent); }
-  .ocr-status .bad { color: #e08a7a; }
-  .ocr-status .ok { color: #7fc08a; }
-  .ocr-download {
-    display: block;
-    margin-top: 7px;
-    padding: 6px 10px;
-    border: 1px solid var(--edge);
-    border-radius: 5px;
-    background: var(--panel);
-    color: var(--text);
-    font: inherit;
-    font-size: 12.5px;
-    cursor: pointer;
-    width: 100%;
-    text-align: center;
-  }
-  .ocr-download:hover { border-color: #55432f; }
-
-  /* ---- Khu thăm dò: chỉ dùng lúc phát triển ---- */
-  .probe { border-top: 1px solid var(--edge); }
-  .probe summary {
-    padding: 9px 14px;
-    font-size: 12px;
-    color: var(--muted);
-    cursor: pointer;
-    user-select: none;
-  }
-  .probe summary:hover { color: var(--text); }
-  .probe-body { padding: 0 14px 13px; }
-
-  .probe-run {
-    width: 100%;
-    padding: 7px 10px;
-    border: 1px solid var(--edge);
-    border-radius: 5px;
-    background: var(--panel);
-    color: var(--text);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .probe-run:hover { border-color: #55432f; }
-  .probe-run:disabled { opacity: .55; cursor: default; }
-  .probe-run:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-  .probe-out {
-    margin: 10px 0 0;
-    font-size: 11.5px;
-    line-height: 1.5;
-  }
-  .probe-out dl { margin: 0; }
-  .probe-out .item {
-    display: flex;
-    gap: 7px;
-    padding: 4px 0;
-    border-bottom: 1px solid rgba(58, 45, 34, .55);
-  }
-  .probe-out .item:last-child { border-bottom: 0; }
-  .probe-out dt { flex: none; width: 92px; color: var(--muted); }
-  .probe-out dd { margin: 0; flex: 1; min-width: 0; word-break: break-word; }
-  .verdict { font-weight: 600; }
-  .ok   { color: #7fc08a; }
-  .bad  { color: #e08a7a; }
-  .warn { color: var(--accent); }
 </style>
 </head>
 <body>
 
-  <div class="stage">
-    <div class="stage-head">
-      <span class="brand">SubForge</span>
-      <label class="switch">
-        <input type="checkbox" id="enabled" checked />
-        <span class="track"></span>
-        <span>Hiện phụ đề</span>
-      </label>
-    </div>
-    <div class="cue cue-a" id="previewA">Hai dòng phụ đề chạy cùng lúc</div>
-    <div class="cue cue-b" id="previewB">Two subtitle lines at the same time</div>
-  </div>
+  <header>
+    <span class="brand">SubForge</span>
+    <label class="switch">
+      <input type="checkbox" id="enabled" checked />
+      <span class="track"></span>
+      <span>Hiện phụ đề</span>
+    </label>
+  </header>
 
-  <section class="ocr-section">
-    <div class="ocr-row">
-      <label class="switch">
-        <input type="checkbox" id="ocrToggle" />
-        <span class="track"></span>
-        <span>Đọc sub cháy &amp; dịch sang tiếng Anh</span>
-      </label>
-    </div>
-    <div class="row ocr-sub-row" id="ocrShowViRow" hidden>
-      <label class="switch">
-        <input type="checkbox" id="ocrShowVi" />
-        <span class="track"></span>
-        <span>Hiện cả tiếng Việt (đối chiếu OCR)</span>
-      </label>
-    </div>
+  <section class="ocr">
+    <label class="switch main">
+      <input type="checkbox" id="ocrToggle" />
+      <span class="track"></span>
+      <span>Đọc sub cháy &amp; dịch sang tiếng Anh</span>
+    </label>
+    <label class="switch sub" id="ocrShowViRow" hidden>
+      <input type="checkbox" id="ocrShowVi" />
+      <span class="track"></span>
+      <span>Hiện cả dòng tiếng Việt</span>
+    </label>
     <p class="ocr-status" id="ocrStatus" hidden></p>
   </section>
 
   <section>
     <div class="row">
-      <span class="row-label">Dòng trên</span>
-      <button class="file-btn" id="pick1">
-        <span class="file-name" id="name1">Chọn file .srt</span>
-        <span class="file-count" id="count1"></span>
-      </button>
-    </div>
-    <div class="row">
-      <span class="row-label">Lệch</span>
-      <div class="nudge">
-        <button data-nudge="1" data-delta="-0.5">−</button>
-        <output id="off1">0.0s</output>
-        <button data-nudge="1" data-delta="0.5">+</button>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="row">
-      <span class="row-label">Dòng dưới</span>
-      <button class="file-btn" id="pick2">
-        <span class="file-name" id="name2">Chọn file .srt</span>
-        <span class="file-count" id="count2"></span>
-      </button>
-    </div>
-    <div class="row">
-      <span class="row-label">Lệch</span>
-      <div class="nudge">
-        <button data-nudge="2" data-delta="-0.5">−</button>
-        <output id="off2">0.0s</output>
-        <button data-nudge="2" data-delta="0.5">+</button>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="row">
-      <span class="row-label">Cỡ chữ</span>
+      <label class="row-label" for="fontSize">Cỡ chữ</label>
       <input type="range" id="fontSize" min="14" max="46" step="1" />
       <span class="value" id="fontSizeVal"></span>
     </div>
     <div class="row">
-      <span class="row-label">Độ cao</span>
+      <label class="row-label" for="bottom">Độ cao</label>
       <input type="range" id="bottom" min="0" max="30" step="1" />
       <span class="value" id="bottomVal"></span>
     </div>
   </section>
 
-  <p class="status" id="status">Đang kiểm tra trang…</p>
-
-  <details class="probe">
-    <summary>Thăm dò kỹ thuật</summary>
-    <div class="probe-body">
-      <button class="probe-run" id="probeRun">Chạy thử trên trang này</button>
-      <button class="probe-run" id="modelRun" style="margin-top:7px">Tải model dịch &amp; thử Việt → Anh</button>
-      <button class="probe-run" id="ocrRun" style="margin-top:7px">Thử OCR tiếng Việt (tự vẽ ảnh)</button>
-      <button class="probe-run" id="hardsubRun" style="margin-top:7px">Phim này có sub cháy không?</button>
-      <div class="probe-out" id="probeOut"></div>
-      <div class="probe-out" id="modelOut"></div>
-      <div class="probe-out" id="ocrOut"></div>
-      <div class="probe-out" id="hardsubOut"></div>
+  <details class="files">
+    <summary>Nạp phụ đề từ file .srt</summary>
+    <div class="files-body">
+      <p class="files-note">Nạp file sẽ tắt chế độ đọc sub cháy.</p>
+      <div class="row">
+        <span class="row-label">Dòng trên</span>
+        <button class="file-btn" id="pick1" type="button">
+          <span class="file-name" id="name1">Chọn file</span>
+          <span class="file-count" id="count1"></span>
+        </button>
+        <div class="nudge" aria-label="Chỉnh lệch dòng trên">
+          <button type="button" data-nudge="1" data-delta="-0.5" aria-label="Sớm hơn 0,5 giây">−</button>
+          <output id="off1">0.0s</output>
+          <button type="button" data-nudge="1" data-delta="0.5" aria-label="Muộn hơn 0,5 giây">+</button>
+        </div>
+      </div>
+      <div class="row">
+        <span class="row-label">Dòng dưới</span>
+        <button class="file-btn" id="pick2" type="button">
+          <span class="file-name" id="name2">Chọn file</span>
+          <span class="file-count" id="count2"></span>
+        </button>
+        <div class="nudge" aria-label="Chỉnh lệch dòng dưới">
+          <button type="button" data-nudge="2" data-delta="-0.5" aria-label="Sớm hơn 0,5 giây">−</button>
+          <output id="off2">0.0s</output>
+          <button type="button" data-nudge="2" data-delta="0.5" aria-label="Muộn hơn 0,5 giây">+</button>
+        </div>
+      </div>
     </div>
   </details>
+
+  <p class="status" id="status">Đang kiểm tra trang…</p>
 
   <input type="file" id="file1" accept=".srt,.vtt,.txt" hidden />
   <input type="file" id="file2" accept=".srt,.vtt,.txt" hidden />

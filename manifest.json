@@ -38,8 +38,7 @@
         "src/main.js",
         "src/core/*.js",
         "src/sources/*.js",
-        "src/adapters/*.js",
-        "src/dev/*.js"
+        "src/adapters/*.js"
       ],
       "matches": [
         "<all_urls>"
