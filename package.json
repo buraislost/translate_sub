@@ -1,7 +1,7 @@
 {
   "name": "subforge",
   "version": "0.1.0",
-  "description": "Chrome extension: tạo và hiển thị phụ đề song ngữ trên mọi website có video.",
+  "description": "Chrome extension: reads burned-in Vietnamese subtitles on web videos and shows an English translation, on-device.",
   "private": true,
   "type": "module",
   "scripts": {

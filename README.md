@@ -1,144 +1,113 @@
 # SubForge
 
-Extension hiển thị **hai phụ đề song song** trên bất kỳ website nào có thẻ `<video>`.
+A Chrome extension that **reads Vietnamese subtitles burned into a web video and shows an English translation** on top of it, in real time. Everything runs on your machine: OCR with Tesseract (WebAssembly), translation with Chrome's built-in on-device Translator. No server, no API key, nothing is uploaded.
 
-Trạng thái: **Sprint 1 hoàn tất** — nạp phụ đề từ file, hiển thị overlay, đồng bộ theo video, chỉnh lệch thời gian.
+It can also play **two `.srt` files at once** (e.g. two languages stacked) on any page with a `<video>`.
 
----
+## Features
 
-## Cài và chạy
+- **Hardsub OCR → English.** Detects when a new subtitle line appears, reads it, translates it and draws it above the original. The English line shows up about **0.1 s** after the Vietnamese one appears on screen.
+- **Works on most sites.** The extension targets the page's `<video>` element, not a specific site. Fullscreen is supported.
+- **Cached per episode.** Lines already read are saved in the page's IndexedDB. On a second viewing they load instantly, with no delay.
+- **Optional original line.** You can show the OCR'd Vietnamese line under the translation to check what was read.
+- **Two subtitle files.** Load a top and a bottom `.srt`, nudge each one's timing, and change the size and position.
 
-Không cần `npm install`, không có bước build.
+## Requirements
 
-1. Mở `chrome://extensions`
-2. Bật **Developer mode** (góc trên bên phải)
-3. Bấm **Load unpacked** → chọn thư mục `subforge`
-4. Mở một trang phim bất kỳ, bấm biểu tượng extension
-5. Chọn file `.srt` cho "Dòng trên" và "Dòng dưới"
+- Chrome **138 or later** for translation, because it uses the [Translator API](https://developer.chrome.com/docs/ai/translator-api). OCR alone works on older versions.
+- About 8 MB of library files in `vendor/`. They are not committed; see the next section.
 
-Chạy test:
+## Install
+
+There is no build step and no `npm install`.
+
+### 1. Download the OCR files into `vendor/tesseract/`
+
+| File | Source |
+|---|---|
+| `tesseract.esm.min.js` | https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.esm.min.js |
+| `worker.min.js` | https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/worker.min.js |
+| `tesseract-core-simd-lstm.wasm.js` | https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0/tesseract-core-simd-lstm.wasm.js |
+| `tesseract-core-relaxedsimd-lstm.wasm.js` | https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0/tesseract-core-relaxedsimd-lstm.wasm.js |
+| `vie.traineddata` | https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/vie.traineddata |
 
 ```bash
-npm test
+mkdir -p vendor/tesseract && cd vendor/tesseract
+curl -LO https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.esm.min.js
+curl -LO https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/worker.min.js
+curl -LO https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0/tesseract-core-simd-lstm.wasm.js
+curl -LO https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0/tesseract-core-relaxedsimd-lstm.wasm.js
+curl -LO https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/vie.traineddata
 ```
 
-Không cần `npm install` — script chỉ gọi `node --test`, không có dependency nào.
+Why local copies? Manifest V3 blocks loading scripts and WebAssembly from a CDN. Use the **uncompressed** `.traineddata`, not the `.gz` version.
 
----
+### 2. Load the extension
 
-## Phím tắt
+1. Open `chrome://extensions`.
+2. Turn on **Developer mode**.
+3. Click **Load unpacked** and select this folder.
 
-| Phím | Tác dụng |
-|---|---|
-| `Shift` + `Z` | Phụ đề chậm lại 0,5 giây |
-| `Shift` + `X` | Phụ đề nhanh lên 0,5 giây |
+## Usage
 
-Hoạt động cả khi đang xem toàn màn hình — đó là lý do có phím tắt thay vì chỉ có nút trong popup.
+1. Open a video that has Vietnamese subtitles burned into the picture, and start playing it.
+2. Click the SubForge icon and turn on **Read subtitles & translate to English**.
+3. The first time, the popup offers **Download translation model**. Click it once; Chrome keeps the model for later.
+4. Size and position sliders adjust the overlay.
 
----
+To play two subtitle files instead, open **Load subtitles from an .srt file** in the popup. Loading a file turns off subtitle reading. `Shift`+`Z` and `Shift`+`X` shift the file timing by 0.5 s, and they also work in fullscreen.
 
-## Kiến trúc
+## How it works
 
 ```
-manifest.json
-src/
-  content.js            loader — dynamic import để dùng ES module trong content script
-  main.js               điều phối: tìm video → gắn overlay → nhận lệnh
-  sw.js                 service worker (Sprint 2 sẽ dùng cho offscreen + tabCapture)
-
-  core/
-    SubtitleSource.js   ★ contract chung cho mọi nguồn phụ đề
-    parser.js           SRT/VTT → cue; chuẩn hoá; xuất ngược ra SRT
-    renderer.js         overlay trong Shadow DOM, xử lý fullscreen
-    sync.js             vòng lặp rAF, tra cue bằng binary search
-    store.js            chrome.storage cho settings và phiên làm việc
-
-  sources/
-    SrtFileSource.js    nguồn từ file upload
-
-  adapters/
-    base.js             contract nền tảng + deepQuerySelectorAll (xuyên Shadow DOM)
-    universal.js        fallback — chạy trên mọi site có <video>
-    youtube.js          ví dụ adapter riêng
-    registry.js         chọn adapter theo URL
-
-  popup/                giao diện điều khiển
-tests/                  test chạy bằng node, không framework
-docs/                   kế hoạch chi tiết từng sprint
-benchmark/              test set và script đo CER/WER
-docs/NOTES.md           ghi chú kiến trúc, quyết định, cạm bẫy
+content script (in the video page)          offscreen document
+──────────────────────────────────          ──────────────────
+every 100 ms: scan the bottom band of the   build a clean black-on-white
+frame at half resolution (~1.3 ms)          text mask (top-hat + white-seed
+  │                                         + connected components)
+  └─ new line? ── grayscale crop ─────────▶ Tesseract (vie) ─▶ Chrome Translator
+                                                    │
+overlay (Shadow DOM) ◀──────── Vietnamese + English cue
 ```
 
-### Hai trục mở rộng
+- **Two tiers.** The cheap scan runs constantly, but the expensive OCR runs only when the subtitle's shape changes, which is about once per line rather than once per frame.
+- **Preprocessing matters more than the engine.** On 22 hand-labelled real frames, Tesseract on raw frames scored a character error rate of **0.65**. On the preprocessed mask it scored **0.031**.
+- **Latency.** The first version lagged about 1.2 s because Chrome throttles async canvas work in hidden offscreen documents. Images are now handed to Tesseract as PGM built in plain JS. Measured on the same 60 s clip (17 lines):
 
-**Trục nguồn phụ đề** — mọi nguồn đều implement `SubtitleSource`:
-
-```js
-class SubtitleSource {
-  async init(videoEl) {}
-  async start() {}
-  async stop() {}
-  onCue(fn) {}
-  cueAt(time) {}   // binary search, O(log n)
-}
-```
-
-Thêm OCR hay ASR = thêm một class, **không sửa** Renderer hay SyncEngine.
-
-**Trục nền tảng** — mọi site đều implement `BaseAdapter`:
-
-```js
-class BaseAdapter {
-  static match(url) {}
-  getVideo() {}
-  getContainer() {}
-  hideNativeSubs() {}
-}
-```
-
-Thêm site mới = thêm file ~30 dòng vào `adapters/`, đăng ký vào `registry.js`.
-
----
-
-## Những chỗ đã xử lý sẵn
-
-| Vấn đề | Cách giải |
-|---|---|
-| CSS của trang phá overlay | Toàn bộ overlay nằm trong Shadow DOM |
-| Overlay biến mất khi fullscreen | Gắn vào container của video; nghe `fullscreenchange` để di chuyển |
-| Video nằm trong iframe | `all_frames: true`; frame không có video tự im lặng khi nhận message |
-| Video nằm trong Shadow DOM | `deepQuerySelectorAll` duyệt đệ quy qua mọi shadow root |
-| SPA đổi video không reload | `MutationObserver` + debounce 300ms |
-| File `.srt` lỗi định dạng | Parser bám vào dòng `-->`, tự sắp xếp, tự sửa cue lỗi |
-| Tra cue tốn CPU | Binary search thay vì quét tuyến tính |
-| Nạp lại phụ đề sau khi F5 | Lưu phiên theo hostname, đối chiếu thời lượng video |
-
----
-
-## Lộ trình
-
-| Sprint | Nội dung | Trạng thái |
+| | Before | After |
 |---|---|---|
-| 1 | Xương sống + `SrtFileSource` + overlay + offset | ✅ xong |
-| 2 | ASR: offscreen, AudioWorklet 16kHz, Whisper, VAD | ⬜ [kế hoạch](docs/sprint-2-asr.md) |
-| 3 | OCR: canvas, Otsu binarize, dHash, Tesseract.js | ⬜ [kế hoạch](docs/sprint-3-ocr.md) |
-| 4 | Dịch máy bằng `transformers.js`, cache IndexedDB | ⬜ |
-| 5 | Đo CER/WER, ablation study | ⬜ [kế hoạch](docs/sprint-5-benchmark.md) |
+| Vietnamese line, mean | 1219 ms | ~91–150 ms |
+| English line, mean | 1234 ms | ~108–175 ms |
+| Lines caught | 15 / 17 | 17 / 17 |
 
-### Bắt đầu một sprint
+## Limitations
 
-Việc tiếp theo: `docs/sprint-2-asr.md`, bắt đầu từ T2.1.
-`docs/NOTES.md` chứa ràng buộc kiến trúc và danh sách cạm bẫy đã biết.
+- **DRM video** (Netflix, Disney+, …) cannot be read. Chrome blanks those frames for every extension.
+- **Cross-origin players without CORS** also block frame access. The popup says so when it happens.
+- **Resolution.** 720p and above works well. Below about 540p accuracy drops noticeably, and 360p is not readable.
+- **Language pair.** Only Vietnamese → English is supported today. The source language is a parameter, so other pairs need only a Tesseract language file and Translator support.
+- **Dubbed versions** have no burned-in text to read. After a while with nothing found, the popup says so.
+- **Live reading.** Each line appears shortly after the original, not before it. Cached lines on a rewatch have no delay.
 
----
+## Development
 
-## Nguồn tham khảo
+```bash
+node --test "tests/**/*.test.mjs"    # or: npm test
+```
 
-| Repo | Dùng để |
-|---|---|
-| `xignoe/videoTranslatorExtenstion` | Mẫu offscreen + Whisper worker |
-| `Sora-bluesky/x-jimaku` | Cách lấy audio từ video element |
-| `ainoya/chrome-extension-web-transcriptor-ai` | Bản ASR tối giản, dễ đọc |
-| `apm1467/videocr` | Thuật toán OCR: `conf_threshold=65`, `sim_threshold=90`, crop nửa dưới |
-| `timminator/VideOCR` | PaddleOCR + SSIM phát hiện thay đổi frame |
-| `jeromewu/tesseract.js-chrome-extension` | Cách đóng gói WASM + traineddata vào extension |
+- The tests use only `node:test`, with no dependencies.
+- Tests that need real video frames look for local fixtures in `benchmark/fixtures/`. They skip themselves when the fixtures are absent; see [benchmark/README.md](benchmark/README.md).
+- The code is plain ES modules loaded directly by Chrome.
+- Identifiers are in English. **Code comments and design notes are in Vietnamese.** [docs/NOTES.md](docs/NOTES.md) describes the architecture, the decisions made and the pitfalls already hit.
+
+Layout:
+
+- `src/content.js`, `src/main.js`: content script and page orchestration.
+- `src/core/`: scanning, masking, cue tracking, overlay and sync. These are pure functions where possible.
+- `src/sources/`: subtitle sources (`.srt` file, OCR, translated), all behind a single `SubtitleSource` interface.
+- `src/offscreen/`: Tesseract and Translator, which run outside the page.
+- `src/adapters/`: per-site hooks for finding the video and its fullscreen container.
+
+## License
+
+[MIT](LICENSE). The bundled OCR files you download into `vendor/` come from [Tesseract.js](https://github.com/naptha/tesseract.js) and [tessdata_fast](https://github.com/tesseract-ocr/tessdata_fast), both under the Apache License 2.0.
