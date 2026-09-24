@@ -1,9 +1,8 @@
 # Translate Sub
 
-Chrome extension that reads hardcoded subtitles off a video and shows a translation on top of it. OCR and translation both run locally (Tesseract.js + Chrome's built-in Translator), nothing goes to a server.
-
-Only Vietnamese -> English for now. Planning to add more languages later.
-
+Chrome extension that reads hardcoded subtitles off a video and shows a translation on top of it. OCR and translation both run locally (Tesseract.js + Chrome's built-in Translator) without a server
+Only Vietnamese -> English for now
+I will update and add more language in next updates
 ## Setup
 
 Needs Chrome 138+ (for the Translator API).
