@@ -1,4 +1,4 @@
-# SubForge
+# Translate Sub
 
 Chrome extension (Manifest V3) hiển thị **hai phụ đề song song** trên mọi website có `<video>`.
 Điểm khác biệt so với các extension cùng loại: tự **sinh** phụ đề bằng OCR (chữ cháy trên hình) và ASR (nhận dạng tiếng nói), không chỉ hiển thị sub có sẵn.

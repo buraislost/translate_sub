@@ -2,7 +2,7 @@
 
 **Mục tiêu**: sinh phụ đề từ audio cho video không có sub, chạy hoàn toàn trong browser.
 
-**Định nghĩa "xong"**: mở một video YouTube đã tắt caption → bật SubForge → sau ≤ 30 giây có phụ đề chạy đúng nội dung, sai số thời gian dưới 1 giây, và **âm thanh vẫn phát bình thường**.
+**Định nghĩa "xong"**: mở một video YouTube đã tắt caption → bật Translate Sub → sau ≤ 30 giây có phụ đề chạy đúng nội dung, sai số thời gian dưới 1 giây, và **âm thanh vẫn phát bình thường**.
 
 ---
 

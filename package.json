@@ -1,5 +1,5 @@
 {
-  "name": "subforge",
+  "name": "translate-sub",
   "version": "0.1.0",
   "description": "Chrome extension: reads burned-in Vietnamese subtitles on web videos and shows an English translation, on-device.",
   "private": true,

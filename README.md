@@ -1,4 +1,4 @@
-# SubForge
+# Translate Sub
 
 A Chrome extension that **reads Vietnamese subtitles burned into a web video and shows an English translation** on top of it, in real time. Everything runs on your machine: OCR with Tesseract (WebAssembly), translation with Chrome's built-in on-device Translator. No server, no API key, nothing is uploaded.
 
@@ -51,7 +51,7 @@ Why local copies? Manifest V3 blocks loading scripts and WebAssembly from a CDN.
 ## Usage
 
 1. Open a video that has Vietnamese subtitles burned into the picture, and start playing it.
-2. Click the SubForge icon and turn on **Read subtitles & translate to English**.
+2. Click the Translate Sub icon and turn on **Read subtitles & translate to English**.
 3. The first time, the popup offers **Download translation model**. Click it once; Chrome keeps the model for later.
 4. Size and position sliders adjust the overlay.
 

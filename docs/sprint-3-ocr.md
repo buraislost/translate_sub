@@ -2,7 +2,7 @@
 
 **Mục tiêu**: đọc hardsub (chữ đã in vào pixel) thành cue text, chạy trong browser.
 
-**Định nghĩa "xong"**: mở một phim hardsub tiếng Việt → bật SubForge → phụ đề được đọc ra và hiển thị lại được ở dạng text, CER dưới 0,20 trên test set.
+**Định nghĩa "xong"**: mở một phim hardsub tiếng Việt → bật Translate Sub → phụ đề được đọc ra và hiển thị lại được ở dạng text, CER dưới 0,20 trên test set.
 
 **Lưu ý**: không có repo nào làm sẵn việc này trong browser. Các project hiện có (`videocr`, `VideOCR`) đều là Python chạy offline trên file video. Đây là phần đóng góp gốc của project — cũng là phần viết được vào báo cáo.
 

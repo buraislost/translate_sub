@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "SubForge",
+  "name": "Translate Sub",
   "version": "0.1.0",
   "description": "Reads subtitles burned into any web video and shows an English translation alongside — or plays two subtitle files at once.",
   "permissions": [
@@ -17,7 +17,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "SubForge",
+    "default_title": "Translate Sub",
     "default_popup": "src/popup/popup.html"
   },
   "content_scripts": [

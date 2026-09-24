@@ -9,12 +9,12 @@
 (async () => {
   // all_frames: true nên script có thể chạy nhiều lần trong cùng một frame
   // khi trang tự chèn iframe. Cờ này chặn việc khởi tạo trùng.
-  if (window.__SUBFORGE_LOADED__) return;
-  window.__SUBFORGE_LOADED__ = true;
+  if (window.__TRANSLATE_SUB_LOADED__) return;
+  window.__TRANSLATE_SUB_LOADED__ = true;
 
   try {
     await import(chrome.runtime.getURL('src/main.js'));
   } catch (err) {
-    console.error('[SubForge] Failed to load main.js:', err);
+    console.error('[TranslateSub] Failed to load main.js:', err);
   }
 })();

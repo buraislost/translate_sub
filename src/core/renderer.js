@@ -75,7 +75,7 @@ const STYLE = `
 export class Renderer {
   constructor() {
     this.host = document.createElement('div');
-    this.host.dataset.subforge = 'overlay';
+    this.host.dataset.translateSub = 'overlay';
 
     // Host phải "miễn nhiễm" với CSS của trang → đặt inline kèm !important.
     const hostStyle = {

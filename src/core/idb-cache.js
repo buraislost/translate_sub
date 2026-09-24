@@ -11,7 +11,7 @@
  * bình thường, chỉ là không nhớ giữa hai lần xem.
  */
 
-const DB_NAME = '__subforge_cache__';
+const DB_NAME = '__translate_sub_cache__';
 const STORE = 'cues';
 
 function openDb() {

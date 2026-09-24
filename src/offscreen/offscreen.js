@@ -29,7 +29,7 @@ const safe = (fn) => async (msg) => {
   try {
     return await fn(msg);
   } catch (err) {
-    console.error('[SubForge][offscreen]', msg?.type, err);
+    console.error('[TranslateSub][offscreen]', msg?.type, err);
     return { ok: false, error: describeError(err) };
   }
 };

@@ -36,7 +36,7 @@ export class YouTubeAdapter extends BaseAdapter {
   hideNativeSubs() {
     if (this._styleEl) return;
     this._styleEl = document.createElement('style');
-    this._styleEl.dataset.subforge = 'hide-native';
+    this._styleEl.dataset.translateSub = 'hide-native';
     this._styleEl.textContent = `
       .ytp-caption-window-container { opacity: 0 !important; pointer-events: none !important; }
     `;
