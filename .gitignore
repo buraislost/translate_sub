@@ -6,7 +6,7 @@ vendor/
 *.onnx
 *.wasm
 
-# Output benchmark (giữ lại ground-truth)
+# Output benchmark
 benchmark/output/
 
 node_modules/
@@ -15,3 +15,6 @@ node_modules/
 
 # Khung hình lấy từ phim thật để đo OCR — chỉ giữ cục bộ, không commit
 benchmark/fixtures/
+
+# Đáp án gõ tay chứa lời thoại phim có bản quyền — chỉ giữ cục bộ
+benchmark/ground-truth/*.json
